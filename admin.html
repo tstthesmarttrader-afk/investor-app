@@ -8,7 +8,7 @@
 :root{--bg:#0f1420;--card:#1a2133;--tx:#e8ecf5;--mut:#8b95ad;--ac:#f0b90b;--ok:#2ecc71;--bad:#e74c3c}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx)}
-header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--card);position:sticky;top:0}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 20px;background:var(--card);position:sticky;top:0;z-index:5}
 section{padding:20px;max-width:1100px;margin:auto}
 .card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px}
 input,button{padding:10px;border-radius:8px;border:1px solid #2c3652;background:#10172a;color:var(--tx);font-size:14px}
@@ -19,11 +19,17 @@ button.sec{background:#2c3652;color:var(--tx)} button.bad{background:var(--bad);
 .mut{color:var(--mut);font-size:13px}.hide{display:none}
 table{width:100%;border-collapse:collapse}
 td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px}
-.pending{color:var(--ac)}.approved{color:var(--ok)}.rejected{color:var(--bad)}
+.pending{color:var(--ac)}.approved,.up{color:var(--ok)}.rejected,.down{color:var(--bad)}
 .shot{max-width:160px;border-radius:8px;cursor:zoom-in;display:block;margin:8px 0}
 .shot.big{max-width:100%}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;padding:20px 20px 0;max-width:1100px;margin:auto}
+.stat{background:var(--card);border-radius:12px;padding:14px}
+.stat b{font-size:24px;display:block;margin-top:4px}
 .set input{width:100%;margin:5px 0}
+.tbl{overflow-x:auto}
+.daily{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.daily input{width:140px}
 </style>
 </head>
 <body>
@@ -48,22 +54,38 @@ td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px
     </span>
   </header>
 
+  <div class="stats">
+    <div class="stat"><span class="mut">Total Clients</span><b id="st_cl">0</b></div>
+    <div class="stat"><span class="mut">Total Balance (USDT)</span><b id="st_bal">0.00</b></div>
+    <div class="stat"><span class="mut">Pending Deposits</span><b id="st_pend">0</b></div>
+    <div class="stat"><span class="mut">Today's P/L (USDT)</span><b id="st_today">0.00</b></div>
+  </div>
+
   <section id="pend"></section>
 
   <section id="cl" class="hide">
-    <button onclick="applyAll()">Sab clients par monthly % lagayein</button>
-    <div class="card" style="margin-top:10px"><table id="cltable"></table></div>
+    <div class="card">
+      <b>Daily Earning</b>
+      <div class="mut">Enter today's result in %. Use a minus sign for a loss. It updates every investor instantly.</div>
+      <div class="daily">
+        <input id="d_pct" type="number" step="any" placeholder="Today's % (e.g. 1.5)">
+        <input id="d_note" placeholder="Note (optional)">
+        <button onclick="publishDaily()">Publish to all clients</button>
+      </div>
+      <div id="d_status" class="mut" style="margin-top:8px"></div>
+    </div>
+    <div class="card tbl"><table id="cltable"></table></div>
   </section>
 
   <section id="hist" class="hide"></section>
 
   <section id="set" class="hide">
     <div class="card set">
-      <b>Client ko ye deposit details dikhengi</b>
+      <b>Deposit details shown to clients</b>
       <input id="s_bin" placeholder="Binance ID (Pay ID)">
       <input id="s_addr" placeholder="Wallet address (optional)">
       <input id="s_net" placeholder="Network (e.g. TRC20)">
-      <input id="s_note" placeholder="Note (e.g. Sirf USDT bhejein)">
+      <input id="s_note" placeholder="Note (e.g. Send USDT only)">
       <button onclick="saveSettings()">Save</button>
       <span id="smsg" class="mut"></span>
     </div>
@@ -75,7 +97,6 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase
 import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {getFirestore,doc,setDoc,updateDoc,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ====== SIRF apiKey AUR appId BADLEIN ======
 const firebaseConfig = {
   apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
   authDomain: "ea-system-a72c2.firebaseapp.com",
@@ -83,7 +104,6 @@ const firebaseConfig = {
   appId: "1:872233236864:web:a447e0e297240256822965"
 };
 const ADMIN_EMAIL = "waheedalisolangi262@gmail.com";
-// ===========================================
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -91,34 +111,46 @@ const db = getFirestore(app);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => Number(n || 0).toFixed(2);
+const sgn = n => (n > 0 ? '+' : '') + fmt(n);
 const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
 const sec = t => (t && t.seconds) || 9999999999;
+const dayKey = () => { const d = new Date(); return 'daily-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
-let users = {}, accounts = {}, deposits = [], unsubs = [], settingsLoaded = false;
+let users = {}, accounts = {}, deposits = [], ledgerDocs = [], todayByUid = {}, unsubs = [], settingsLoaded = false;
 
 window.tab = n => ['pend','cl','hist','set'].forEach(x => $(x).classList.toggle('hide', x !== n));
 window.logout = () => signOut(auth);
 
 $('btnLogin').onclick = async () => {
   try { await signInWithEmailAndPassword(auth, $('aemail').value.trim(), $('apw').value); }
-  catch (e) { $('lmsg').textContent = 'Email ya password ghalat hai.'; }
+  catch (e) { $('lmsg').textContent = 'Wrong email or password.'; }
 };
 
 onAuthStateChanged(auth, user => {
   unsubs.forEach(u => u()); unsubs = [];
-  if (user && user.email !== ADMIN_EMAIL) { signOut(auth); $('lmsg').textContent = 'Ye admin account nahi hai.'; return; }
+  if (user && user.email !== ADMIN_EMAIL) { signOut(auth); $('lmsg').textContent = 'This is not an admin account.'; return; }
   $('login').classList.toggle('hide', !!user);
   $('main').classList.toggle('hide', !user);
   if (!user) return;
 
   unsubs.push(onSnapshot(collection(db, 'users'), s => {
-    users = {}; s.docs.forEach(d => users[d.id] = d.data()); renderClients(); renderDeposits();
+    users = {}; s.docs.forEach(d => users[d.id] = d.data()); renderClients(); renderDeposits(); renderStats();
   }));
   unsubs.push(onSnapshot(collection(db, 'accounts'), s => {
-    accounts = {}; s.docs.forEach(d => accounts[d.id] = d.data()); renderClients();
+    accounts = {}; s.docs.forEach(d => accounts[d.id] = d.data()); renderClients(); renderStats();
   }));
   unsubs.push(onSnapshot(collection(db, 'deposits'), s => {
-    deposits = s.docs.map(d => ({id: d.id, ...d.data()})); renderDeposits();
+    deposits = s.docs.map(d => ({id: d.id, ...d.data()})); renderDeposits(); renderStats();
+  }));
+  unsubs.push(onSnapshot(collection(db, 'ledger'), s => {
+    ledgerDocs = s.docs.map(d => ({id: d.id, ...d.data()}));
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    todayByUid = {};
+    ledgerDocs.forEach(x => {
+      if ((x.type === 'profit' || x.type === 'loss') && x.createdAt && x.createdAt.toDate && x.createdAt.toDate() >= start)
+        todayByUid[x.uid] = (todayByUid[x.uid] || 0) + (Number(x.amount) || 0);
+    });
+    renderClients(); renderStats(); renderDailyStatus();
   }));
   unsubs.push(onSnapshot(doc(db, 'settings', 'public'), s => {
     const d = s.data();
@@ -129,6 +161,23 @@ onAuthStateChanged(auth, user => {
     }
   }));
 });
+
+function renderDailyStatus() {
+  const old = ledgerDocs.filter(x => x.batch === dayKey());
+  $('d_status').textContent = old.length
+    ? "Today's earning is already published: " + (old[0].pct > 0 ? '+' : '') + old[0].pct + '% to ' + old.length + ' client(s). Publishing again will replace it.'
+    : "Today's earning is not published yet.";
+}
+
+function renderStats() {
+  $('st_cl').textContent = Object.keys(users).length;
+  $('st_bal').textContent = fmt(Object.values(accounts).reduce((t, a) => t + (Number(a.balance) || 0), 0));
+  $('st_pend').textContent = deposits.filter(d => d.status === 'pending').length;
+  const t = Object.values(todayByUid).reduce((a, b) => a + b, 0);
+  const el = $('st_today');
+  el.textContent = sgn(t);
+  el.className = t > 0 ? 'up' : t < 0 ? 'down' : '';
+}
 
 function renderDeposits() {
   const pend = deposits.filter(d => d.status === 'pending').sort((a, b) => sec(a.createdAt) - sec(b.createdAt));
@@ -144,34 +193,35 @@ function renderDeposits() {
       '<button onclick="approve(\'' + d.id + '\')">Approve</button>' +
       '<button class="bad" onclick="reject(\'' + d.id + '\')">Reject</button>' +
       '</div>';
-  }).join('') + '</div>' : '<div class="mut">Koi pending request nahi.</div>';
+  }).join('') + '</div>' : '<div class="mut">No pending requests.</div>';
 
   const done = deposits.filter(d => d.status !== 'pending').sort((a, b) => sec(b.processedAt) - sec(a.processedAt)).slice(0, 50);
-  $('hist').innerHTML = '<div class="card"><table><tr><th>Client</th><th>Claimed</th><th>Approved</th><th>Status</th><th>Time</th></tr>' +
+  $('hist').innerHTML = '<div class="card tbl"><table><tr><th>Client</th><th>Claimed</th><th>Approved</th><th>Status</th><th>Time</th></tr>' +
     done.map(d => '<tr><td>' + esc(d.clientId) + '</td><td>' + fmt(d.amount) + '</td><td>' + (d.approvedAmount != null ? fmt(d.approvedAmount) : '-') +
       '</td><td class="' + esc(d.status) + '">' + esc(d.status) + '</td><td>' + esc(dt(d.processedAt)) + '</td></tr>').join('') + '</table></div>';
 }
 
 function renderClients() {
   const rows = Object.keys(users).map(uid => {
-    const u = users[uid], a = accounts[uid];
+    const u = users[uid], a = accounts[uid], t = todayByUid[uid] || 0;
     return '<tr><td>' + esc(u.clientId) + '</td><td>' + esc(u.name) + '</td><td>' + esc(u.phone) + '</td><td>' +
-      (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td><td>' +
-      (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '<span class="mut">Deposit approve nahi hui</span>') + '</td></tr>';
+      (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td>' +
+      '<td class="' + (t > 0 ? 'up' : t < 0 ? 'down' : '') + '">' + (a ? sgn(t) : '-') + '</td><td>' +
+      (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '<span class="mut">No approved deposit</span>') + '</td></tr>';
   }).join('');
-  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Naam</th><th>Phone</th><th>Account ID</th><th>Balance</th><th></th></tr>' + rows;
+  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Name</th><th>Phone</th><th>Account ID</th><th>Balance</th><th>Today</th><th></th></tr>' + rows;
 }
 
 window.approve = async id => {
   const amt = parseFloat($('amt_' + id).value);
-  if (!(amt > 0)) return alert('Sahi amount likhein.');
+  if (!(amt > 0)) return alert('Enter a valid amount.');
   const dep0 = deposits.find(d => d.id === id);
   const depRef = doc(db, 'deposits', id), accRef = doc(db, 'accounts', dep0.uid);
   try {
     await runTransaction(db, async tx => {
       const dep = await tx.get(depRef);
       const acc = await tx.get(accRef);
-      if (dep.data().status !== 'pending') throw new Error('Pehle hi process ho chuki hai.');
+      if (dep.data().status !== 'pending') throw new Error('Already processed.');
       if (acc.exists()) {
         tx.update(accRef, {balance: acc.data().balance + amt});
       } else {
@@ -184,7 +234,7 @@ window.approve = async id => {
 };
 
 window.reject = async id => {
-  if (!confirm('Reject karna hai?')) return;
+  if (!confirm('Reject this deposit?')) return;
   await updateDoc(doc(db, 'deposits', id), {status: 'rejected', processedAt: serverTimestamp()});
 };
 
@@ -198,21 +248,41 @@ async function adjust(uid, n, note) {
 }
 
 window.pl = async uid => {
-  const n = parseFloat(prompt('Amount likhein (profit ke liye +, loss ke liye -):'));
+  const n = parseFloat(prompt('Enter amount (+ for profit, - for loss):'));
   if (!n) return;
-  const note = prompt('Note (optional):', 'Monthly result') || '';
+  const note = prompt('Note (optional):', 'Daily result') || '';
   try { await adjust(uid, n, note); } catch (e) { alert(e.message); }
 };
 
-window.applyAll = async () => {
-  const p = parseFloat(prompt('Is mahine ka ACTUAL result % likhein (loss ho to -):'));
-  if (!p) return;
-  if (!confirm('Sab clients ke balance par ' + p + '% lagana hai?')) return;
-  for (const uid in accounts) {
-    const n = +(accounts[uid].balance * p / 100).toFixed(2);
-    if (n) await adjust(uid, n, 'Monthly result ' + p + '%');
-  }
-  alert('Ho gaya.');
+window.publishDaily = async () => {
+  const p = parseFloat($('d_pct').value);
+  if (isNaN(p) || p === 0) return alert("Enter today's % (e.g. 1.5 or -0.8).");
+  const key = dayKey();
+  const old = ledgerDocs.filter(x => x.batch === key);
+  const msg = old.length
+    ? "Today's earning is already published. Replace it with " + p + '%?'
+    : 'Publish ' + p + '% to every client?';
+  if (!confirm(msg)) return;
+  const note = $('d_note').value.trim() || 'Daily earning ' + (p > 0 ? '+' : '') + p + '%';
+  let count = 0;
+  try {
+    for (const uid in accounts) {
+      const oldMine = old.filter(x => x.uid === uid);
+      const oldSum = oldMine.reduce((t, x) => t + (Number(x.amount) || 0), 0);
+      await runTransaction(db, async tx => {
+        const ref = doc(db, 'accounts', uid);
+        const s = await tx.get(ref);
+        const base = s.data().balance - oldSum;
+        const n = +(base * p / 100).toFixed(2);
+        oldMine.forEach(x => tx.delete(doc(db, 'ledger', x.id)));
+        tx.update(ref, {balance: +(base + n).toFixed(2)});
+        if (n) tx.set(doc(collection(db, 'ledger')), {uid, type: n > 0 ? 'profit' : 'loss', amount: n, note, batch: key, pct: p, createdAt: serverTimestamp()});
+      });
+      count++;
+    }
+    $('d_pct').value = ''; $('d_note').value = '';
+    alert('Published to ' + count + ' client(s).');
+  } catch (e) { alert('Error: ' + e.message); }
 };
 
 window.saveSettings = async () => {
@@ -220,7 +290,7 @@ window.saveSettings = async () => {
     binanceId: $('s_bin').value.trim(), address: $('s_addr').value.trim(),
     network: $('s_net').value.trim(), note: $('s_note').value.trim()
   });
-  $('smsg').textContent = 'Save ho gaya.';
+  $('smsg').textContent = 'Saved.';
 };
 </script>
 </body>
