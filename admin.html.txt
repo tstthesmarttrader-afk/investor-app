@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Investor Admin</title>
+<style>
+:root{--bg:#0f1420;--card:#1a2133;--tx:#e8ecf5;--mut:#8b95ad;--ac:#f0b90b;--ok:#2ecc71;--bad:#e74c3c}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--card);position:sticky;top:0}
+section{padding:20px;max-width:1100px;margin:auto}
+.card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px}
+input,button{padding:10px;border-radius:8px;border:1px solid #2c3652;background:#10172a;color:var(--tx);font-size:14px}
+button{background:var(--ac);color:#000;font-weight:700;border:0;cursor:pointer;margin:2px}
+button.sec{background:#2c3652;color:var(--tx)} button.bad{background:var(--bad);color:#fff}
+.box{max-width:340px;margin:12vh auto;background:var(--card);padding:20px;border-radius:12px}
+.box input{width:100%;margin:6px 0}
+.mut{color:var(--mut);font-size:13px}.hide{display:none}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px}
+.pending{color:var(--ac)}.approved{color:var(--ok)}.rejected{color:var(--bad)}
+.shot{max-width:160px;border-radius:8px;cursor:zoom-in;display:block;margin:8px 0}
+.shot.big{max-width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.set input{width:100%;margin:5px 0}
+</style>
+</head>
+<body>
+
+<div id="login" class="box">
+  <h3>Admin Login</h3>
+  <input id="aemail" placeholder="Admin email">
+  <input id="apw" type="password" placeholder="Password">
+  <button id="btnLogin" style="width:100%">Login</button>
+  <div id="lmsg" class="mut"></div>
+</div>
+
+<div id="main" class="hide">
+  <header>
+    <b>💼 Admin Dashboard</b>
+    <span>
+      <button onclick="tab('pend')">Pending (<span id="pc">0</span>)</button>
+      <button onclick="tab('cl')">Clients</button>
+      <button onclick="tab('hist')">History</button>
+      <button onclick="tab('set')">Settings</button>
+      <button class="sec" onclick="logout()">Logout</button>
+    </span>
+  </header>
+
+  <section id="pend"></section>
+
+  <section id="cl" class="hide">
+    <button onclick="applyAll()">Sab clients par monthly % lagayein</button>
+    <div class="card" style="margin-top:10px"><table id="cltable"></table></div>
+  </section>
+
+  <section id="hist" class="hide"></section>
+
+  <section id="set" class="hide">
+    <div class="card set">
+      <b>Client ko ye deposit details dikhengi</b>
+      <input id="s_bin" placeholder="Binance ID (Pay ID)">
+      <input id="s_addr" placeholder="Wallet address (optional)">
+      <input id="s_net" placeholder="Network (e.g. TRC20)">
+      <input id="s_note" placeholder="Note (e.g. Sirf USDT bhejein)">
+      <button onclick="saveSettings()">Save</button>
+      <span id="smsg" class="mut"></span>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getFirestore,doc,setDoc,updateDoc,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ====== SIRF apiKey AUR appId BADLEIN ======
+const firebaseConfig = {
+  apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
+  authDomain: "ea-system-a72c2.firebaseapp.com",
+  projectId: "ea-system-a72c2",
+  appId: "1:872233236864:web:a447e0e297240256822965"
+};
+const ADMIN_EMAIL = "waheedalisolangi262@gmail.com";
+// ===========================================
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toFixed(2);
+const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
+const sec = t => (t && t.seconds) || 9999999999;
+
+let users = {}, accounts = {}, deposits = [], unsubs = [], settingsLoaded = false;
+
+window.tab = n => ['pend','cl','hist','set'].forEach(x => $(x).classList.toggle('hide', x !== n));
+window.logout = () => signOut(auth);
+
+$('btnLogin').onclick = async () => {
+  try { await signInWithEmailAndPassword(auth, $('aemail').value.trim(), $('apw').value); }
+  catch (e) { $('lmsg').textContent = 'Email ya password ghalat hai.'; }
+};
+
+onAuthStateChanged(auth, user => {
+  unsubs.forEach(u => u()); unsubs = [];
+  if (user && user.email !== ADMIN_EMAIL) { signOut(auth); $('lmsg').textContent = 'Ye admin account nahi hai.'; return; }
+  $('login').classList.toggle('hide', !!user);
+  $('main').classList.toggle('hide', !user);
+  if (!user) return;
+
+  unsubs.push(onSnapshot(collection(db, 'users'), s => {
+    users = {}; s.docs.forEach(d => users[d.id] = d.data()); renderClients(); renderDeposits();
+  }));
+  unsubs.push(onSnapshot(collection(db, 'accounts'), s => {
+    accounts = {}; s.docs.forEach(d => accounts[d.id] = d.data()); renderClients();
+  }));
+  unsubs.push(onSnapshot(collection(db, 'deposits'), s => {
+    deposits = s.docs.map(d => ({id: d.id, ...d.data()})); renderDeposits();
+  }));
+  unsubs.push(onSnapshot(doc(db, 'settings', 'public'), s => {
+    const d = s.data();
+    if (d && !settingsLoaded) {
+      $('s_bin').value = d.binanceId || ''; $('s_addr').value = d.address || '';
+      $('s_net').value = d.network || ''; $('s_note').value = d.note || '';
+      settingsLoaded = true;
+    }
+  }));
+});
+
+function renderDeposits() {
+  const pend = deposits.filter(d => d.status === 'pending').sort((a, b) => sec(a.createdAt) - sec(b.createdAt));
+  $('pc').textContent = pend.length;
+  $('pend').innerHTML = pend.length ? '<div class="grid">' + pend.map(d => {
+    const u = users[d.uid] || {};
+    return '<div class="card">' +
+      '<b>' + esc(d.clientId) + '</b> - ' + esc(u.name) + '<div class="mut">' + esc(u.phone) + ' | ' + esc(dt(d.createdAt)) + '</div>' +
+      '<div style="margin-top:6px">Claimed: <b>' + fmt(d.amount) + ' USDT</b></div>' +
+      '<div class="mut" style="word-break:break-all">TxID: ' + esc(d.txid) + '</div>' +
+      '<img class="shot" src="' + esc(d.image) + '" onclick="this.classList.toggle(\'big\')">' +
+      '<div>Verified amount: <input id="amt_' + d.id + '" type="number" step="any" value="' + esc(d.amount) + '" style="width:110px"></div>' +
+      '<button onclick="approve(\'' + d.id + '\')">Approve</button>' +
+      '<button class="bad" onclick="reject(\'' + d.id + '\')">Reject</button>' +
+      '</div>';
+  }).join('') + '</div>' : '<div class="mut">Koi pending request nahi.</div>';
+
+  const done = deposits.filter(d => d.status !== 'pending').sort((a, b) => sec(b.processedAt) - sec(a.processedAt)).slice(0, 50);
+  $('hist').innerHTML = '<div class="card"><table><tr><th>Client</th><th>Claimed</th><th>Approved</th><th>Status</th><th>Time</th></tr>' +
+    done.map(d => '<tr><td>' + esc(d.clientId) + '</td><td>' + fmt(d.amount) + '</td><td>' + (d.approvedAmount != null ? fmt(d.approvedAmount) : '-') +
+      '</td><td class="' + esc(d.status) + '">' + esc(d.status) + '</td><td>' + esc(dt(d.processedAt)) + '</td></tr>').join('') + '</table></div>';
+}
+
+function renderClients() {
+  const rows = Object.keys(users).map(uid => {
+    const u = users[uid], a = accounts[uid];
+    return '<tr><td>' + esc(u.clientId) + '</td><td>' + esc(u.name) + '</td><td>' + esc(u.phone) + '</td><td>' +
+      (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td><td>' +
+      (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '<span class="mut">Deposit approve nahi hui</span>') + '</td></tr>';
+  }).join('');
+  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Naam</th><th>Phone</th><th>Account ID</th><th>Balance</th><th></th></tr>' + rows;
+}
+
+window.approve = async id => {
+  const amt = parseFloat($('amt_' + id).value);
+  if (!(amt > 0)) return alert('Sahi amount likhein.');
+  const dep0 = deposits.find(d => d.id === id);
+  const depRef = doc(db, 'deposits', id), accRef = doc(db, 'accounts', dep0.uid);
+  try {
+    await runTransaction(db, async tx => {
+      const dep = await tx.get(depRef);
+      const acc = await tx.get(accRef);
+      if (dep.data().status !== 'pending') throw new Error('Pehle hi process ho chuki hai.');
+      if (acc.exists()) {
+        tx.update(accRef, {balance: acc.data().balance + amt});
+      } else {
+        tx.set(accRef, {uid: dep0.uid, clientId: dep0.clientId, accountId: 'ACC' + Math.floor(100000 + Math.random() * 900000), balance: amt, createdAt: serverTimestamp()});
+      }
+      tx.update(depRef, {status: 'approved', approvedAmount: amt, processedAt: serverTimestamp()});
+      tx.set(doc(collection(db, 'ledger')), {uid: dep0.uid, type: 'deposit', amount: amt, note: 'Deposit approved', createdAt: serverTimestamp()});
+    });
+  } catch (e) { alert('Error: ' + e.message); }
+};
+
+window.reject = async id => {
+  if (!confirm('Reject karna hai?')) return;
+  await updateDoc(doc(db, 'deposits', id), {status: 'rejected', processedAt: serverTimestamp()});
+};
+
+async function adjust(uid, n, note) {
+  const ref = doc(db, 'accounts', uid);
+  await runTransaction(db, async tx => {
+    const s = await tx.get(ref);
+    tx.update(ref, {balance: s.data().balance + n});
+    tx.set(doc(collection(db, 'ledger')), {uid, type: n > 0 ? 'profit' : 'loss', amount: n, note, createdAt: serverTimestamp()});
+  });
+}
+
+window.pl = async uid => {
+  const n = parseFloat(prompt('Amount likhein (profit ke liye +, loss ke liye -):'));
+  if (!n) return;
+  const note = prompt('Note (optional):', 'Monthly result') || '';
+  try { await adjust(uid, n, note); } catch (e) { alert(e.message); }
+};
+
+window.applyAll = async () => {
+  const p = parseFloat(prompt('Is mahine ka ACTUAL result % likhein (loss ho to -):'));
+  if (!p) return;
+  if (!confirm('Sab clients ke balance par ' + p + '% lagana hai?')) return;
+  for (const uid in accounts) {
+    const n = +(accounts[uid].balance * p / 100).toFixed(2);
+    if (n) await adjust(uid, n, 'Monthly result ' + p + '%');
+  }
+  alert('Ho gaya.');
+};
+
+window.saveSettings = async () => {
+  await setDoc(doc(db, 'settings', 'public'), {
+    binanceId: $('s_bin').value.trim(), address: $('s_addr').value.trim(),
+    network: $('s_net').value.trim(), note: $('s_note').value.trim()
+  });
+  $('smsg').textContent = 'Save ho gaya.';
+};
+</script>
+</body>
+</html>

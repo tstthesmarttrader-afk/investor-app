@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Investor App</title>
+<style>
+:root{--bg:#0f1420;--card:#1a2133;--tx:#e8ecf5;--mut:#8b95ad;--ac:#f0b90b;--ok:#2ecc71;--bad:#e74c3c}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.wrap{max-width:480px;margin:auto;padding:16px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px}
+input,button{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #2c3652;background:#10172a;color:var(--tx);font-size:15px}
+button{background:var(--ac);color:#000;font-weight:700;border:0;cursor:pointer}
+button.sec{background:#2c3652;color:var(--tx)}
+.mut{color:var(--mut);font-size:13px}
+.big{font-size:18px;font-weight:700;margin-bottom:8px}
+.bal{font-size:34px;font-weight:800;color:var(--ac)}
+.hide{display:none}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2c3652;font-size:14px}
+.pending{color:var(--ac)}.approved,.profit,.deposit{color:var(--ok)}.rejected,.loss{color:var(--bad)}
+#prev{max-width:100%;border-radius:10px;margin-top:6px}
+.copy{word-break:break-all;background:#10172a;padding:8px;border-radius:8px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>💼 Investor App</h2>
+
+  <div id="auth" class="card">
+    <div id="loginBox">
+      <input id="lid" placeholder="Client ID (e.g. C123456)">
+      <input id="lpw" type="password" placeholder="Password">
+      <button id="btnLogin">Login</button>
+      <button class="sec" id="toReg">Naya account banayein</button>
+    </div>
+    <div id="regBox" class="hide">
+      <input id="rname" placeholder="Poora naam">
+      <input id="rphone" placeholder="Phone number">
+      <input id="rpw" type="password" placeholder="Password (kam az kam 6 characters)">
+      <button id="btnReg">Register</button>
+      <button class="sec" id="toLogin">Wapas Login</button>
+    </div>
+    <div id="amsg" class="mut"></div>
+  </div>
+
+  <div id="app" class="hide">
+    <div class="card">
+      <div class="mut">Client ID</div><div id="cid" class="big"></div>
+      <div class="mut">Account ID</div><div id="accid" class="big">—</div>
+      <div class="mut">Balance (USDT)</div><div id="bal" class="bal">0.00</div>
+    </div>
+
+    <div class="card">
+      <b>Deposit karein</b>
+      <div class="mut" style="margin-top:6px">Neeche diye gaye Binance ID / address par payment bhejein:</div>
+      <div id="bin" class="copy">Admin ne abhi details set nahi ki.</div>
+      <input id="amt" type="number" step="any" placeholder="Amount (USDT)">
+      <input id="txid" placeholder="Binance TxID / Order ID">
+      <input id="file" type="file" accept="image/*">
+      <img id="prev" class="hide">
+      <button id="btnDep">Submit karein</button>
+      <div id="dmsg" class="mut"></div>
+    </div>
+
+    <div class="card"><b>Meri Deposit Requests</b><div id="deps"></div></div>
+    <div class="card"><b>Account History</b><div id="led"></div></div>
+    <button class="sec" id="btnOut">Logout</button>
+  </div>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getFirestore,doc,setDoc,addDoc,collection,query,where,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ====== SIRF apiKey AUR appId BADLEIN ======
+const firebaseConfig = {
+  apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
+  authDomain: "ea-system-a72c2.firebaseapp.com",
+  projectId: "ea-system-a72c2",
+  appId: "1:872233236864:web:a447e0e297240256822965"
+};
+// ===========================================
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toEmail = id => id.trim().toLowerCase() + '@investor.app';
+const fmt = n => Number(n || 0).toFixed(2);
+const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
+const ts = x => (x.createdAt && x.createdAt.seconds) || 9999999999;
+let unsubs = [], imgData = null;
+
+const msg = t => $('amsg').textContent = t;
+const dmsg = t => $('dmsg').textContent = t;
+
+$('toReg').onclick = () => { $('loginBox').classList.add('hide'); $('regBox').classList.remove('hide'); msg(''); };
+$('toLogin').onclick = () => { $('regBox').classList.add('hide'); $('loginBox').classList.remove('hide'); msg(''); };
+
+$('btnReg').onclick = async () => {
+  const name = $('rname').value.trim(), phone = $('rphone').value.trim(), pw = $('rpw').value;
+  if (!name || !phone || pw.length < 6) return msg('Naam, phone aur 6+ character password zaroori hai.');
+  for (let i = 0; i < 5; i++) {
+    const id = 'C' + Math.floor(100000 + Math.random() * 900000);
+    try {
+      const cr = await createUserWithEmailAndPassword(auth, toEmail(id), pw);
+      await setDoc(doc(db, 'users', cr.user.uid), {clientId: id, name, phone, createdAt: serverTimestamp()});
+      alert('Aap ka Client ID: ' + id + '\n\nIse note kar lein, login ke liye yehi chahiye.');
+      return;
+    } catch (e) {
+      if (e.code !== 'auth/email-already-in-use') return msg(e.message);
+    }
+  }
+  msg('Dobara try karein.');
+};
+
+$('btnLogin').onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, toEmail($('lid').value), $('lpw').value);
+  } catch (e) { msg('Client ID ya password ghalat hai.'); }
+};
+
+$('btnOut').onclick = () => signOut(auth);
+
+$('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => {
+    const sc = Math.min(1, 900 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = img.width * sc; c.height = img.height * sc;
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    imgData = c.toDataURL('image/jpeg', 0.6);
+    URL.revokeObjectURL(url);
+    $('prev').src = imgData; $('prev').classList.remove('hide');
+  };
+  img.src = url;
+};
+
+$('btnDep').onclick = async () => {
+  const user = auth.currentUser;
+  const amount = parseFloat($('amt').value), txid = $('txid').value.trim();
+  if (!(amount > 0) || !txid || !imgData) return dmsg('Amount, TxID aur screenshot teeno zaroori hain.');
+  try {
+    await addDoc(collection(db, 'deposits'), {
+      uid: user.uid,
+      clientId: user.email.split('@')[0].toUpperCase(),
+      amount, txid, image: imgData, status: 'pending',
+      createdAt: serverTimestamp()
+    });
+    $('amt').value = ''; $('txid').value = ''; $('file').value = '';
+    $('prev').classList.add('hide'); imgData = null;
+    dmsg('Request bhej di gayi. Approval ka intezar karein.');
+  } catch (e) { dmsg('Error: ' + e.message); }
+};
+
+onAuthStateChanged(auth, user => {
+  unsubs.forEach(u => u()); unsubs = [];
+  $('auth').classList.toggle('hide', !!user);
+  $('app').classList.toggle('hide', !user);
+  if (!user) return;
+
+  const uid = user.uid;
+  $('cid').textContent = user.email.split('@')[0].toUpperCase();
+
+  unsubs.push(onSnapshot(doc(db, 'accounts', uid), s => {
+    const a = s.data();
+    $('accid').textContent = a ? a.accountId : 'Approval ke baad milegi';
+    $('bal').textContent = fmt(a && a.balance);
+  }));
+
+  unsubs.push(onSnapshot(doc(db, 'settings', 'public'), s => {
+    const d = s.data();
+    if (!d) return;
+    $('bin').innerHTML =
+      (d.binanceId ? 'Binance ID: <b>' + esc(d.binanceId) + '</b><br>' : '') +
+      (d.address ? 'Address: <b>' + esc(d.address) + '</b><br>' : '') +
+      (d.network ? 'Network: <b>' + esc(d.network) + '</b><br>' : '') +
+      (d.note ? '<span class="mut">' + esc(d.note) + '</span>' : '');
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'deposits'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    $('deps').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
+    ).join('') || '<div class="mut">Abhi koi request nahi.</div>';
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'ledger'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    $('led').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + esc(d.type) + (d.note ? ' - ' + esc(d.note) : '') + '<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.type) + '">' + (d.amount > 0 ? '+' : '') + fmt(d.amount) + '</b></div>'
+    ).join('') || '<div class="mut">Abhi koi history nahi.</div>';
+  }));
+});
+</script>
+</body>
+</html>
