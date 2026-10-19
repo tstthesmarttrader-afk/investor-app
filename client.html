@@ -33,14 +33,16 @@ button.sec{background:#2c3652;color:var(--tx)}
 
   <div id="auth" class="card">
     <div id="loginBox">
-      <input id="lid" placeholder="Client ID (e.g. C123456)">
+      <b>Login</b>
+      <input id="lphone" type="tel" placeholder="Mobile number">
       <input id="lpw" type="password" placeholder="Password">
       <button id="btnLogin">Login</button>
       <button class="sec" id="toReg">Create new account</button>
     </div>
     <div id="regBox" class="hide">
+      <b>Register</b>
       <input id="rname" placeholder="Full name">
-      <input id="rphone" placeholder="Phone number">
+      <input id="rphone" type="tel" placeholder="Mobile number">
       <input id="rpw" type="password" placeholder="Password (at least 6 characters)">
       <button id="btnReg">Register</button>
       <button class="sec" id="toLogin">Back to Login</button>
@@ -50,6 +52,7 @@ button.sec{background:#2c3652;color:var(--tx)}
 
   <div id="app" class="hide">
     <div class="card">
+      <div class="mut">Name</div><div id="uname" class="big">-</div>
       <div class="mut">Client ID</div><div id="cid" class="big">-</div>
       <div class="mut">Account ID</div><div id="accid" class="big">-</div>
       <div class="stats">
@@ -85,7 +88,7 @@ button.sec{background:#2c3652;color:var(--tx)}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {getFirestore,doc,setDoc,addDoc,collection,query,where,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,where,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
@@ -100,39 +103,56 @@ const db = getFirestore(app);
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const toEmail = id => id.trim().toLowerCase() + '@investor.app';
+const digits = s => String(s || '').replace(/\D/g, '');
+const toEmail = phone => 'm' + digits(phone) + '@investor.app';
 const fmt = n => Number(n || 0).toFixed(2);
 const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
 const ts = x => (x.createdAt && x.createdAt.seconds) || 9999999999;
-let unsubs = [], imgData = null, myClientId = '';
+let unsubs = [], imgData = null, myClientId = '', registering = false;
 
 const msg = t => $('amsg').textContent = t;
 const dmsg = t => $('dmsg').textContent = t;
+const showLogin = () => { $('regBox').classList.add('hide'); $('loginBox').classList.remove('hide'); };
 
 $('toReg').onclick = () => { $('loginBox').classList.add('hide'); $('regBox').classList.remove('hide'); msg(''); };
-$('toLogin').onclick = () => { $('regBox').classList.add('hide'); $('loginBox').classList.remove('hide'); msg(''); };
+$('toLogin').onclick = () => { showLogin(); msg(''); };
 
 $('btnReg').onclick = async () => {
-  const name = $('rname').value.trim(), phone = $('rphone').value.trim(), pw = $('rpw').value;
-  if (!name || !phone || pw.length < 6) return msg('Name, phone and a password of 6+ characters are required.');
-  for (let i = 0; i < 5; i++) {
-    const id = 'C' + Math.floor(100000 + Math.random() * 900000);
-    try {
-      const cr = await createUserWithEmailAndPassword(auth, toEmail(id), pw);
-      await setDoc(doc(db, 'users', cr.user.uid), {clientId: id, name, phone, createdAt: serverTimestamp()});
-      alert('Your Client ID is: ' + id + '\n\nPlease save it. You need it to log in.');
-      return;
-    } catch (e) {
-      if (e.code !== 'auth/email-already-in-use') return msg(e.message);
-    }
+  const name = $('rname').value.trim(), phone = digits($('rphone').value), pw = $('rpw').value;
+  if (!name || phone.length < 10 || phone.length > 15 || pw.length < 6)
+    return msg('Enter your name, a valid mobile number (10-15 digits) and a password of 6+ characters.');
+  registering = true; msg('');
+  const email = toEmail(phone);
+  let cred;
+  try {
+    cred = await createUserWithEmailAndPassword(auth, email, pw);
+  } catch (e) {
+    if (e.code === 'auth/email-already-in-use') {
+      // maybe an account that was deleted by admin: try to re-create the profile
+      try {
+        cred = await signInWithEmailAndPassword(auth, email, pw);
+        const ex = await getDoc(doc(db, 'users', cred.user.uid));
+        if (ex.exists()) { await signOut(auth); registering = false; alert('This user is already registered. Please login.'); showLogin(); $('lphone').value = phone; return; }
+      } catch (e2) { registering = false; alert('This user is already registered. Please login.'); showLogin(); $('lphone').value = phone; return; }
+    } else { registering = false; return msg(e.message); }
   }
-  msg('Please try again.');
+  try {
+    const id = 'C' + Math.floor(100000 + Math.random() * 900000);
+    await setDoc(doc(db, 'users', cred.user.uid), {clientId: id, name, phone, suspended: false, createdAt: serverTimestamp()});
+    await signOut(auth);
+    registering = false;
+    showLogin(); $('lphone').value = phone; $('lpw').value = '';
+    $('rname').value = ''; $('rphone').value = ''; $('rpw').value = '';
+    alert('Registration successful!\nYour Client ID: ' + id + '\n\nPlease login with your mobile number and password.');
+    msg('Registered. Please login.');
+  } catch (e) { registering = false; msg('Error: ' + e.message); }
 };
 
 $('btnLogin').onclick = async () => {
+  msg('');
   try {
-    await signInWithEmailAndPassword(auth, toEmail($('lid').value), $('lpw').value);
-  } catch (e) { msg('Wrong Client ID or password.'); }
+    await signInWithEmailAndPassword(auth, toEmail($('lphone').value), $('lpw').value);
+  } catch (e) { msg('Wrong mobile number or password.'); }
 };
 
 $('btnOut').onclick = () => signOut(auth);
@@ -159,8 +179,7 @@ $('btnDep').onclick = async () => {
   if (!myClientId) return dmsg('Account is still loading. Please try again.');
   try {
     await addDoc(collection(db, 'deposits'), {
-      uid: user.uid,
-      clientId: myClientId,
+      uid: user.uid, clientId: myClientId,
       amount, txid, image: imgData, status: 'pending',
       createdAt: serverTimestamp()
     });
@@ -179,9 +198,13 @@ onAuthStateChanged(auth, user => {
   const uid = user.uid;
 
   unsubs.push(onSnapshot(doc(db, 'users', uid), s => {
+    if (registering) return;
+    if (!s.exists()) { signOut(auth); msg('This account was not found or has been deleted.'); return; }
     const d = s.data();
-    myClientId = d && d.clientId ? d.clientId : '';
+    if (d.suspended) { signOut(auth); msg('Your account is suspended. Please contact the admin.'); return; }
+    myClientId = d.clientId || '';
     $('cid').textContent = myClientId || '-';
+    $('uname').textContent = d.name || '-';
   }));
 
   unsubs.push(onSnapshot(doc(db, 'accounts', uid), s => {
@@ -210,8 +233,6 @@ onAuthStateChanged(auth, user => {
 
   unsubs.push(onSnapshot(query(collection(db, 'ledger'), where('uid', '==', uid)), s => {
     const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
-
-    // Today's earning = sum of profit/loss entries made today
     const start = new Date(); start.setHours(0, 0, 0, 0);
     let today = 0;
     arr.forEach(d => {
