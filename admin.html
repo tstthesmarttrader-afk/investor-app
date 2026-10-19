@@ -18,7 +18,7 @@ button.sec{background:#2c3652;color:var(--tx)} button.bad{background:var(--bad);
 .box input{width:100%;margin:6px 0}
 .mut{color:var(--mut);font-size:13px}.hide{display:none}
 table{width:100%;border-collapse:collapse}
-td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px}
+td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px;white-space:nowrap}
 .pending{color:var(--ac)}.approved,.up{color:var(--ok)}.rejected,.down{color:var(--bad)}
 .shot{max-width:160px;border-radius:8px;cursor:zoom-in;display:block;margin:8px 0}
 .shot.big{max-width:100%}
@@ -66,7 +66,7 @@ td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px
   <section id="cl" class="hide">
     <div class="card">
       <b>Daily Earning</b>
-      <div class="mut">Enter today's result in %. Use a minus sign for a loss. It updates every investor instantly.</div>
+      <div class="mut">Enter today's result in %. Use a minus sign for a loss. It updates every active investor instantly.</div>
       <div class="daily">
         <input id="d_pct" type="number" step="any" placeholder="Today's % (e.g. 1.5)">
         <input id="d_note" placeholder="Note (optional)">
@@ -95,7 +95,7 @@ td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {getFirestore,doc,setDoc,updateDoc,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {getFirestore,doc,setDoc,updateDoc,deleteDoc,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
@@ -203,14 +203,36 @@ function renderDeposits() {
 
 function renderClients() {
   const rows = Object.keys(users).map(uid => {
-    const u = users[uid], a = accounts[uid], t = todayByUid[uid] || 0;
+    const u = users[uid], a = accounts[uid], t = todayByUid[uid] || 0, sus = !!u.suspended;
     return '<tr><td>' + esc(u.clientId) + '</td><td>' + esc(u.name) + '</td><td>' + esc(u.phone) + '</td><td>' +
       (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td>' +
-      '<td class="' + (t > 0 ? 'up' : t < 0 ? 'down' : '') + '">' + (a ? sgn(t) : '-') + '</td><td>' +
-      (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '<span class="mut">No approved deposit</span>') + '</td></tr>';
+      '<td class="' + (t > 0 ? 'up' : t < 0 ? 'down' : '') + '">' + (a ? sgn(t) : '-') + '</td>' +
+      '<td class="' + (sus ? 'rejected' : 'approved') + '">' + (sus ? 'Suspended' : 'Active') + '</td><td>' +
+      (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '') +
+      '<button class="sec" onclick="toggleSuspend(\'' + uid + '\')">' + (sus ? 'Activate' : 'Suspend') + '</button>' +
+      '<button class="bad" onclick="delUser(\'' + uid + '\')">Delete</button></td></tr>';
   }).join('');
-  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Name</th><th>Phone</th><th>Account ID</th><th>Balance</th><th>Today</th><th></th></tr>' + rows;
+  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Name</th><th>Mobile</th><th>Account ID</th><th>Balance</th><th>Today</th><th>Status</th><th>Actions</th></tr>' + rows;
 }
+
+window.toggleSuspend = async uid => {
+  const u = users[uid]; const sus = !u.suspended;
+  if (!confirm((sus ? 'Suspend ' : 'Activate ') + u.name + '?')) return;
+  try { await updateDoc(doc(db, 'users', uid), {suspended: sus}); } catch (e) { alert('Error: ' + e.message); }
+};
+
+window.delUser = async uid => {
+  const u = users[uid];
+  if (!confirm('DELETE ' + u.name + ' (' + u.phone + ')?\nTheir balance, deposits and history will be permanently removed.')) return;
+  if (prompt('Type DELETE to confirm:') !== 'DELETE') return;
+  try {
+    for (const d of deposits.filter(x => x.uid === uid)) await deleteDoc(doc(db, 'deposits', d.id));
+    for (const l of ledgerDocs.filter(x => x.uid === uid)) await deleteDoc(doc(db, 'ledger', l.id));
+    await deleteDoc(doc(db, 'accounts', uid));
+    await deleteDoc(doc(db, 'users', uid));
+    alert('Deleted.');
+  } catch (e) { alert('Error: ' + e.message); }
+};
 
 window.approve = async id => {
   const amt = parseFloat($('amt_' + id).value);
@@ -261,12 +283,13 @@ window.publishDaily = async () => {
   const old = ledgerDocs.filter(x => x.batch === key);
   const msg = old.length
     ? "Today's earning is already published. Replace it with " + p + '%?'
-    : 'Publish ' + p + '% to every client?';
+    : 'Publish ' + p + '% to every active client?';
   if (!confirm(msg)) return;
   const note = $('d_note').value.trim() || 'Daily earning ' + (p > 0 ? '+' : '') + p + '%';
   let count = 0;
   try {
     for (const uid in accounts) {
+      if (users[uid] && users[uid].suspended) continue;
       const oldMine = old.filter(x => x.uid === uid);
       const oldSum = oldMine.reduce((t, x) => t + (Number(x.amount) || 0), 0);
       await runTransaction(db, async tx => {
