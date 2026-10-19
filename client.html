@@ -15,12 +15,16 @@ button{background:var(--ac);color:#000;font-weight:700;border:0;cursor:pointer}
 button.sec{background:#2c3652;color:var(--tx)}
 .mut{color:var(--mut);font-size:13px}
 .big{font-size:18px;font-weight:700;margin-bottom:8px}
-.bal{font-size:34px;font-weight:800;color:var(--ac)}
+.bal{font-size:30px;font-weight:800;color:var(--ac)}
 .hide{display:none}
 .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2c3652;font-size:14px}
 .pending{color:var(--ac)}.approved,.profit,.deposit{color:var(--ok)}.rejected,.loss{color:var(--bad)}
 #prev{max-width:100%;border-radius:10px;margin-top:6px}
 .copy{word-break:break-all;background:#10172a;padding:8px;border-radius:8px;margin-top:4px}
+.stats{display:flex;gap:12px;margin-top:6px}
+.stat{flex:1;background:#10172a;border-radius:12px;padding:12px}
+.earn{font-size:26px;font-weight:800}
+.up{color:var(--ok)}.down{color:var(--bad)}.flat{color:var(--tx)}
 </style>
 </head>
 <body>
@@ -32,38 +36,47 @@ button.sec{background:#2c3652;color:var(--tx)}
       <input id="lid" placeholder="Client ID (e.g. C123456)">
       <input id="lpw" type="password" placeholder="Password">
       <button id="btnLogin">Login</button>
-      <button class="sec" id="toReg">Naya account banayein</button>
+      <button class="sec" id="toReg">Create new account</button>
     </div>
     <div id="regBox" class="hide">
-      <input id="rname" placeholder="Poora naam">
+      <input id="rname" placeholder="Full name">
       <input id="rphone" placeholder="Phone number">
-      <input id="rpw" type="password" placeholder="Password (kam az kam 6 characters)">
+      <input id="rpw" type="password" placeholder="Password (at least 6 characters)">
       <button id="btnReg">Register</button>
-      <button class="sec" id="toLogin">Wapas Login</button>
+      <button class="sec" id="toLogin">Back to Login</button>
     </div>
     <div id="amsg" class="mut"></div>
   </div>
 
   <div id="app" class="hide">
     <div class="card">
-      <div class="mut">Client ID</div><div id="cid" class="big"></div>
-      <div class="mut">Account ID</div><div id="accid" class="big">—</div>
-      <div class="mut">Balance (USDT)</div><div id="bal" class="bal">0.00</div>
+      <div class="mut">Client ID</div><div id="cid" class="big">-</div>
+      <div class="mut">Account ID</div><div id="accid" class="big">-</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="mut">Balance (USDT)</div>
+          <div id="bal" class="bal">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="mut">Today's Earning</div>
+          <div id="earn" class="earn flat">0.00</div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
-      <b>Deposit karein</b>
-      <div class="mut" style="margin-top:6px">Neeche diye gaye Binance ID / address par payment bhejein:</div>
-      <div id="bin" class="copy">Admin ne abhi details set nahi ki.</div>
+      <b>Make a Deposit</b>
+      <div class="mut" style="margin-top:6px">Send your payment to the Binance ID / address below:</div>
+      <div id="bin" class="copy">Deposit details have not been set yet.</div>
       <input id="amt" type="number" step="any" placeholder="Amount (USDT)">
       <input id="txid" placeholder="Binance TxID / Order ID">
       <input id="file" type="file" accept="image/*">
       <img id="prev" class="hide">
-      <button id="btnDep">Submit karein</button>
+      <button id="btnDep">Submit</button>
       <div id="dmsg" class="mut"></div>
     </div>
 
-    <div class="card"><b>Meri Deposit Requests</b><div id="deps"></div></div>
+    <div class="card"><b>My Deposit Requests</b><div id="deps"></div></div>
     <div class="card"><b>Account History</b><div id="led"></div></div>
     <button class="sec" id="btnOut">Logout</button>
   </div>
@@ -74,14 +87,12 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase
 import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {getFirestore,doc,setDoc,addDoc,collection,query,where,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ====== SIRF apiKey AUR appId BADLEIN ======
 const firebaseConfig = {
   apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
   authDomain: "ea-system-a72c2.firebaseapp.com",
   projectId: "ea-system-a72c2",
   appId: "1:872233236864:web:a447e0e297240256822965"
 };
-// ===========================================
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -93,7 +104,7 @@ const toEmail = id => id.trim().toLowerCase() + '@investor.app';
 const fmt = n => Number(n || 0).toFixed(2);
 const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
 const ts = x => (x.createdAt && x.createdAt.seconds) || 9999999999;
-let unsubs = [], imgData = null;
+let unsubs = [], imgData = null, myClientId = '';
 
 const msg = t => $('amsg').textContent = t;
 const dmsg = t => $('dmsg').textContent = t;
@@ -103,25 +114,25 @@ $('toLogin').onclick = () => { $('regBox').classList.add('hide'); $('loginBox').
 
 $('btnReg').onclick = async () => {
   const name = $('rname').value.trim(), phone = $('rphone').value.trim(), pw = $('rpw').value;
-  if (!name || !phone || pw.length < 6) return msg('Naam, phone aur 6+ character password zaroori hai.');
+  if (!name || !phone || pw.length < 6) return msg('Name, phone and a password of 6+ characters are required.');
   for (let i = 0; i < 5; i++) {
     const id = 'C' + Math.floor(100000 + Math.random() * 900000);
     try {
       const cr = await createUserWithEmailAndPassword(auth, toEmail(id), pw);
       await setDoc(doc(db, 'users', cr.user.uid), {clientId: id, name, phone, createdAt: serverTimestamp()});
-      alert('Aap ka Client ID: ' + id + '\n\nIse note kar lein, login ke liye yehi chahiye.');
+      alert('Your Client ID is: ' + id + '\n\nPlease save it. You need it to log in.');
       return;
     } catch (e) {
       if (e.code !== 'auth/email-already-in-use') return msg(e.message);
     }
   }
-  msg('Dobara try karein.');
+  msg('Please try again.');
 };
 
 $('btnLogin').onclick = async () => {
   try {
     await signInWithEmailAndPassword(auth, toEmail($('lid').value), $('lpw').value);
-  } catch (e) { msg('Client ID ya password ghalat hai.'); }
+  } catch (e) { msg('Wrong Client ID or password.'); }
 };
 
 $('btnOut').onclick = () => signOut(auth);
@@ -144,32 +155,38 @@ $('file').onchange = e => {
 $('btnDep').onclick = async () => {
   const user = auth.currentUser;
   const amount = parseFloat($('amt').value), txid = $('txid').value.trim();
-  if (!(amount > 0) || !txid || !imgData) return dmsg('Amount, TxID aur screenshot teeno zaroori hain.');
+  if (!(amount > 0) || !txid || !imgData) return dmsg('Amount, TxID and screenshot are all required.');
+  if (!myClientId) return dmsg('Account is still loading. Please try again.');
   try {
     await addDoc(collection(db, 'deposits'), {
       uid: user.uid,
-      clientId: user.email.split('@')[0].toUpperCase(),
+      clientId: myClientId,
       amount, txid, image: imgData, status: 'pending',
       createdAt: serverTimestamp()
     });
     $('amt').value = ''; $('txid').value = ''; $('file').value = '';
     $('prev').classList.add('hide'); imgData = null;
-    dmsg('Request bhej di gayi. Approval ka intezar karein.');
+    dmsg('Request submitted. Please wait for approval.');
   } catch (e) { dmsg('Error: ' + e.message); }
 };
 
 onAuthStateChanged(auth, user => {
-  unsubs.forEach(u => u()); unsubs = [];
+  unsubs.forEach(u => u()); unsubs = []; myClientId = '';
   $('auth').classList.toggle('hide', !!user);
   $('app').classList.toggle('hide', !user);
   if (!user) return;
 
   const uid = user.uid;
-  $('cid').textContent = user.email.split('@')[0].toUpperCase();
+
+  unsubs.push(onSnapshot(doc(db, 'users', uid), s => {
+    const d = s.data();
+    myClientId = d && d.clientId ? d.clientId : '';
+    $('cid').textContent = myClientId || '-';
+  }));
 
   unsubs.push(onSnapshot(doc(db, 'accounts', uid), s => {
     const a = s.data();
-    $('accid').textContent = a ? a.accountId : 'Approval ke baad milegi';
+    $('accid').textContent = a ? a.accountId : 'Available after first approval';
     $('bal').textContent = fmt(a && a.balance);
   }));
 
@@ -188,15 +205,26 @@ onAuthStateChanged(auth, user => {
     $('deps').innerHTML = arr.map(d =>
       '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
       '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
-    ).join('') || '<div class="mut">Abhi koi request nahi.</div>';
+    ).join('') || '<div class="mut">No requests yet.</div>';
   }));
 
   unsubs.push(onSnapshot(query(collection(db, 'ledger'), where('uid', '==', uid)), s => {
     const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+
+    // Today's earning = sum of profit/loss entries made today
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    let today = 0;
+    arr.forEach(d => {
+      if ((d.type === 'profit' || d.type === 'loss') && d.createdAt && d.createdAt.toDate && d.createdAt.toDate() >= start) today += Number(d.amount) || 0;
+    });
+    const el = $('earn');
+    el.textContent = (today > 0 ? '+' : '') + fmt(today);
+    el.className = 'earn ' + (today > 0 ? 'up' : today < 0 ? 'down' : 'flat');
+
     $('led').innerHTML = arr.map(d =>
       '<div class="row"><span>' + esc(d.type) + (d.note ? ' - ' + esc(d.note) : '') + '<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
       '<b class="' + esc(d.type) + '">' + (d.amount > 0 ? '+' : '') + fmt(d.amount) + '</b></div>'
-    ).join('') || '<div class="mut">Abhi koi history nahi.</div>';
+    ).join('') || '<div class="mut">No history yet.</div>';
   }));
 });
 </script>
