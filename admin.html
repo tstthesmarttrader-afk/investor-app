@@ -110,7 +110,7 @@ h4{margin:14px 0 8px}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {initializeAuth,browserSessionPersistence,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {getFirestore,doc,setDoc,addDoc,updateDoc,deleteDoc,getDocs,writeBatch,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -122,7 +122,7 @@ const firebaseConfig = {
 const ADMIN_EMAIL = "waheedalisolangi262@gmail.com";
 
 const app = initializeApp(firebaseConfig);
-const auth = initializeAuth(app, {persistence: browserSessionPersistence});
+const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -139,21 +139,35 @@ window.tab = n => ['pend','cl','hist','logs','set'].forEach(x => $(x).classList.
 window.logout = () => signOut(auth);
 
 $('btnLogin').onclick = async () => {
-  $('lmsg').textContent = '';
-  try { await signInWithEmailAndPassword(auth, $('aemail').value.trim(), $('apw').value); }
-  catch (e) { $('lmsg').textContent = 'Wrong email or password.'; }
+  $('lmsg').textContent = 'Signing in...';
+  try {
+    const cred = await signInWithEmailAndPassword(auth, $('aemail').value.trim(), $('apw').value);
+    if (cred.user.email.toLowerCase() !== ADMIN_EMAIL) {
+      await signOut(auth);
+      $('lmsg').textContent = 'This is not an admin account.';
+    } else {
+      $('lmsg').textContent = '';
+      startAdmin(cred.user);
+    }
+  } catch (e) { $('lmsg').textContent = 'Login failed: ' + (e.code || e.message); }
 };
 
 onAuthStateChanged(auth, user => {
-  unsubs.forEach(u => u()); unsubs = [];
-  if (user && user.email !== ADMIN_EMAIL) { signOut(auth); $('lmsg').textContent = 'This is not an admin account.'; return; }
-  $('login').classList.toggle('hide', !!user);
-  $('main').classList.toggle('hide', !user);
-  if (!user) return;
+  if (user && user.email && user.email.toLowerCase() === ADMIN_EMAIL) startAdmin(user);
+  else if (user) { signOut(auth); }
+  else { unsubs.forEach(u => u()); unsubs = []; started = false; $('login').classList.remove('hide'); $('main').classList.add('hide'); }
+});
+
+let started = false;
+function startAdmin(user) {
+  if (started) return;
+  started = true;
+  $('login').classList.add('hide');
+  $('main').classList.remove('hide');
 
   unsubs.push(onSnapshot(collection(db, 'users'), s => {
     users = {}; s.docs.forEach(d => users[d.id] = d.data()); renderAll();
-  }));
+  }, e => $('lmsg').textContent = 'users: ' + e.code));
   unsubs.push(onSnapshot(collection(db, 'accounts'), s => {
     accounts = {}; s.docs.forEach(d => accounts[d.id] = d.data()); renderAll();
   }));
@@ -185,7 +199,7 @@ onAuthStateChanged(auth, user => {
       settingsLoaded = true;
     }
   }));
-});
+}
 
 function renderAll() { renderClients(); renderDeposits(); renderStats(); }
 
@@ -228,4 +242,217 @@ function renderDeposits() {
     (pw.length ? '<div class="grid">' + pw.map(w => {
       const u = users[w.uid] || {}, a = accounts[w.uid];
       return '<div class="card">' +
-        '<b>' + esc(w.clientId) + '</b> - ' + esc(u.name) + '<div class="mut">' +
+        '<b>' + esc(w.clientId) + '</b> - ' + esc(u.name) + '<div class="mut">' + esc(dt(w.createdAt)) + '</div>' +
+        '<div style="margin-top:6px">Amount: <b>' + fmt(w.amount) + ' USDT</b> <span class="mut">(balance ' + fmt(a && a.balance) + ')</span></div>' +
+        '<div class="mut" style="word-break:break-all">Send to: ' + esc(w.address) + (w.network ? ' (' + esc(w.network) + ')' : '') + '</div>' +
+        '<div class="mut" style="margin:6px 0">Send the money on Binance first, then click Approve.</div>' +
+        '<button onclick="approveW(\'' + w.id + '\')">Approve (Paid)</button>' +
+        '<button class="bad" onclick="rejectW(\'' + w.id + '\')">Reject</button></div>';
+    }).join('') + '</div>' : '<div class="mut">No pending withdrawals.</div>');
+
+  const done = deposits.filter(d => d.status !== 'pending').map(d => ({...d, kind: 'Deposit', appr: d.approvedAmount}))
+    .concat(withdrawals.filter(w => w.status !== 'pending').map(w => ({...w, kind: 'Withdrawal', appr: w.status === 'approved' ? w.amount : null})))
+    .sort((a, b) => sec(b.processedAt) - sec(a.processedAt)).slice(0, 100);
+  $('hist').innerHTML = '<div class="card tbl"><table><tr><th>Type</th><th>Client</th><th>Requested</th><th>Approved</th><th>Status</th><th>Time</th></tr>' +
+    done.map(d => '<tr><td>' + d.kind + '</td><td>' + esc(d.clientId) + '</td><td>' + fmt(d.amount) + '</td><td>' + (d.appr != null ? fmt(d.appr) : '-') +
+      '</td><td class="' + esc(d.status) + '">' + esc(d.status) + '</td><td>' + esc(dt(d.processedAt)) + '</td></tr>').join('') + '</table></div>';
+}
+
+function renderLogs() {
+  $('logs').innerHTML = '<div class="card tbl"><table><tr><th>Time</th><th>Action</th><th>Details</th></tr>' +
+    logDocs.map(l => '<tr><td>' + esc(dt(l.at)) + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.detail) + '</td></tr>').join('') + '</table></div>';
+}
+
+function renderClients() {
+  const rows = Object.keys(users).map(uid => {
+    const u = users[uid], a = accounts[uid], t = todayByUid[uid] || 0, sus = !!u.suspended;
+    return '<tr><td>' + esc(u.clientId) + '</td><td>' + esc(u.name) + '</td><td>' +
+      (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td>' +
+      '<td class="' + (t > 0 ? 'up' : t < 0 ? 'down' : '') + '">' + (a ? sgn(t) : '-') + '</td>' +
+      '<td class="' + (sus ? 'rejected' : 'approved') + '">' + (sus ? 'Suspended' : 'Active') + '</td><td>' +
+      (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '') +
+      '<button class="sec" onclick="toggleSuspend(\'' + uid + '\')">' + (sus ? 'Activate' : 'Suspend') + '</button>' +
+      '<button class="bad" onclick="delUser(\'' + uid + '\')">Delete</button></td></tr>';
+  }).join('');
+  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Name</th><th>Account ID</th><th>Balance</th><th>Today</th><th>Status</th><th>Actions</th></tr>' + rows;
+}
+
+function csv(rows, name) {
+  const t = rows.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([t], {type: 'text/csv'}));
+  a.download = name + '.csv'; a.click();
+}
+window.exportClients = () => {
+  csv([['Client ID', 'Name', 'Account ID', 'Balance', 'Status']].concat(Object.keys(users).map(uid => {
+    const u = users[uid], a = accounts[uid];
+    return [u.clientId, u.name, a ? a.accountId : '', a ? fmt(a.balance) : '', u.suspended ? 'Suspended' : 'Active'];
+  })), 'clients');
+  log('Export', 'Clients CSV');
+};
+window.exportTx = () => {
+  const rows = ledgerDocs.slice().sort((a, b) => sec(a.createdAt) - sec(b.createdAt))
+    .map(x => [dt(x.createdAt), (users[x.uid] || {}).clientId || '', x.type, fmt(x.amount), x.note || '']);
+  csv([['Date', 'Client ID', 'Type', 'Amount', 'Note']].concat(rows), 'transactions');
+  log('Export', 'Transactions CSV');
+};
+
+window.toggleSuspend = async uid => {
+  const u = users[uid]; const sus = !u.suspended;
+  if (!confirm((sus ? 'Suspend ' : 'Activate ') + u.name + '?')) return;
+  try { await updateDoc(doc(db, 'users', uid), {suspended: sus}); log(sus ? 'Suspend' : 'Activate', u.clientId + ' ' + u.name); }
+  catch (e) { alert('Error: ' + e.message); }
+};
+
+window.delUser = async uid => {
+  const u = users[uid];
+  if (!confirm('DELETE ' + u.name + ' (' + u.clientId + ')?\nTheir balance, deposits and history will be permanently removed.')) return;
+  if (prompt('Type DELETE to confirm:') !== 'DELETE') return;
+  try {
+    for (const d of deposits.filter(x => x.uid === uid)) await deleteDoc(doc(db, 'deposits', d.id));
+    for (const w of withdrawals.filter(x => x.uid === uid)) await deleteDoc(doc(db, 'withdrawals', w.id));
+    for (const l of ledgerDocs.filter(x => x.uid === uid)) await deleteDoc(doc(db, 'ledger', l.id));
+    await deleteDoc(doc(db, 'accounts', uid));
+    await deleteDoc(doc(db, 'users', uid));
+    log('Delete client', u.clientId + ' ' + u.name);
+    alert('Deleted.');
+  } catch (e) { alert('Error: ' + e.message); }
+};
+
+window.resetAll = async () => {
+  if (!confirm('This will delete ALL clients, balances, deposits, withdrawals and history. Continue?')) return;
+  if (prompt('Type RESET to confirm:') !== 'RESET') return;
+  $('rmsg').textContent = 'Deleting...';
+  try {
+    for (const name of ['ledger', 'deposits', 'withdrawals', 'accounts', 'users']) {
+      const snap = await getDocs(collection(db, name));
+      let batch = writeBatch(db), n = 0;
+      for (const d of snap.docs) {
+        batch.delete(d.ref); n++;
+        if (n === 400) { await batch.commit(); batch = writeBatch(db); n = 0; }
+      }
+      if (n) await batch.commit();
+    }
+    log('Reset', 'All data deleted');
+    $('rmsg').textContent = 'Done. All data is reset.';
+    alert('Reset complete. Also delete the old client accounts (c......@investor.app) from Firebase Authentication.');
+  } catch (e) { $('rmsg').textContent = ''; alert('Error: ' + e.message); }
+};
+
+window.approve = async id => {
+  const amt = parseFloat($('amt_' + id).value);
+  if (!(amt > 0)) return alert('Enter a valid amount.');
+  const dep0 = deposits.find(d => d.id === id);
+  const depRef = doc(db, 'deposits', id), accRef = doc(db, 'accounts', dep0.uid);
+  try {
+    await runTransaction(db, async tx => {
+      const dep = await tx.get(depRef);
+      const acc = await tx.get(accRef);
+      if (dep.data().status !== 'pending') throw new Error('Already processed.');
+      if (acc.exists()) {
+        tx.update(accRef, {balance: acc.data().balance + amt});
+      } else {
+        tx.set(accRef, {uid: dep0.uid, clientId: dep0.clientId, accountId: 'ACC' + Math.floor(100000 + Math.random() * 900000), balance: amt, createdAt: serverTimestamp()});
+      }
+      tx.update(depRef, {status: 'approved', approvedAmount: amt, processedAt: serverTimestamp()});
+      tx.set(doc(collection(db, 'ledger')), {uid: dep0.uid, type: 'deposit', amount: amt, note: 'Deposit approved', createdAt: serverTimestamp()});
+    });
+    log('Approve deposit', dep0.clientId + ' ' + fmt(amt) + ' USDT');
+  } catch (e) { alert('Error: ' + e.message); }
+};
+
+window.reject = async id => {
+  if (!confirm('Reject this deposit?')) return;
+  const d = deposits.find(x => x.id === id);
+  await updateDoc(doc(db, 'deposits', id), {status: 'rejected', processedAt: serverTimestamp()});
+  log('Reject deposit', d.clientId + ' ' + fmt(d.amount) + ' USDT');
+};
+
+window.approveW = async id => {
+  const w0 = withdrawals.find(x => x.id === id);
+  if (!confirm('Approve withdrawal of ' + fmt(w0.amount) + ' USDT for ' + w0.clientId + '?\nHave you already sent the money?')) return;
+  const wRef = doc(db, 'withdrawals', id), aRef = doc(db, 'accounts', w0.uid);
+  try {
+    await runTransaction(db, async tx => {
+      const w = await tx.get(wRef), a = await tx.get(aRef);
+      if (w.data().status !== 'pending') throw new Error('Already processed.');
+      if (!a.exists() || a.data().balance < w0.amount) throw new Error('Insufficient balance.');
+      tx.update(aRef, {balance: +(a.data().balance - w0.amount).toFixed(2)});
+      tx.update(wRef, {status: 'approved', processedAt: serverTimestamp()});
+      tx.set(doc(collection(db, 'ledger')), {uid: w0.uid, type: 'withdrawal', amount: -w0.amount, note: 'Withdrawal', createdAt: serverTimestamp()});
+    });
+    log('Approve withdrawal', w0.clientId + ' ' + fmt(w0.amount) + ' USDT');
+  } catch (e) { alert('Error: ' + e.message); }
+};
+
+window.rejectW = async id => {
+  if (!confirm('Reject this withdrawal?')) return;
+  const w = withdrawals.find(x => x.id === id);
+  await updateDoc(doc(db, 'withdrawals', id), {status: 'rejected', processedAt: serverTimestamp()});
+  log('Reject withdrawal', w.clientId + ' ' + fmt(w.amount) + ' USDT');
+};
+
+async function adjust(uid, n, note) {
+  const ref = doc(db, 'accounts', uid);
+  await runTransaction(db, async tx => {
+    const s = await tx.get(ref);
+    tx.update(ref, {balance: s.data().balance + n});
+    tx.set(doc(collection(db, 'ledger')), {uid, type: n > 0 ? 'profit' : 'loss', amount: n, note, createdAt: serverTimestamp()});
+  });
+}
+
+window.pl = async uid => {
+  const n = parseFloat(prompt('Enter amount (+ for profit, - for loss):'));
+  if (!n) return;
+  const note = prompt('Note (optional):', 'Daily result') || '';
+  try { await adjust(uid, n, note); log('Profit/Loss', (users[uid] || {}).clientId + ' ' + sgn(n)); }
+  catch (e) { alert(e.message); }
+};
+
+window.publishDaily = async () => {
+  const p = parseFloat($('d_pct').value);
+  if (isNaN(p) || p === 0) return alert("Enter today's % (e.g. 1.5 or -0.8).");
+  const key = dayKey();
+  const old = ledgerDocs.filter(x => x.batch === key);
+  const msg = old.length
+    ? "Today's earning is already published. Replace it with " + p + '%?'
+    : 'Publish ' + p + '% to every active client?';
+  if (!confirm(msg)) return;
+  const note = $('d_note').value.trim() || 'Daily earning ' + (p > 0 ? '+' : '') + p + '%';
+  let count = 0;
+  try {
+    for (const uid in accounts) {
+      if (users[uid] && users[uid].suspended) continue;
+      const oldMine = old.filter(x => x.uid === uid);
+      const oldSum = oldMine.reduce((t, x) => t + (Number(x.amount) || 0), 0);
+      await runTransaction(db, async tx => {
+        const ref = doc(db, 'accounts', uid);
+        const s = await tx.get(ref);
+        const base = s.data().balance - oldSum;
+        const n = +(base * p / 100).toFixed(2);
+        oldMine.forEach(x => tx.delete(doc(db, 'ledger', x.id)));
+        tx.update(ref, {balance: +(base + n).toFixed(2)});
+        if (n) tx.set(doc(collection(db, 'ledger')), {uid, type: n > 0 ? 'profit' : 'loss', amount: n, note, batch: key, pct: p, createdAt: serverTimestamp()});
+      });
+      count++;
+    }
+    $('d_pct').value = ''; $('d_note').value = '';
+    log('Daily earning', (p > 0 ? '+' : '') + p + '% to ' + count + ' client(s)');
+    alert('Published to ' + count + ' client(s).');
+  } catch (e) { alert('Error: ' + e.message); }
+};
+
+window.saveSettings = async () => {
+  try {
+    await setDoc(doc(db, 'settings', 'public'), {
+      binanceId: $('s_bin').value.trim(), address: $('s_addr').value.trim(),
+      network: $('s_net').value.trim(), note: $('s_note').value.trim(),
+      minDeposit: parseFloat($('s_min').value) || 0, announcement: $('s_ann').value.trim()
+    });
+    log('Settings saved', '');
+    $('smsg').textContent = 'Saved.';
+  } catch (e) { $('smsg').textContent = 'Error: ' + e.message; }
+};
+</script>
+</body>
+</html>
