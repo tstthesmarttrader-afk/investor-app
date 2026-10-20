@@ -30,6 +30,7 @@ td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px
 .tbl{overflow-x:auto}
 .daily{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 .daily input{width:140px}
+.danger{border:1px solid var(--bad)}
 </style>
 </head>
 <body>
@@ -89,13 +90,19 @@ td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px
       <button onclick="saveSettings()">Save</button>
       <span id="smsg" class="mut"></span>
     </div>
+    <div class="card danger">
+      <b style="color:var(--bad)">Danger Zone</b>
+      <div class="mut" style="margin:6px 0">Deletes ALL clients, balances, deposits and history. Deposit details (Binance ID) are kept. This cannot be undone.</div>
+      <button class="bad" onclick="resetAll()">Reset All Data</button>
+      <span id="rmsg" class="mut"></span>
+    </div>
   </section>
 </div>
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {initializeAuth,browserSessionPersistence,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {getFirestore,doc,setDoc,updateDoc,deleteDoc,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {getFirestore,doc,setDoc,updateDoc,deleteDoc,getDocs,writeBatch,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
@@ -233,6 +240,25 @@ window.delUser = async uid => {
     await deleteDoc(doc(db, 'users', uid));
     alert('Deleted.');
   } catch (e) { alert('Error: ' + e.message); }
+};
+
+window.resetAll = async () => {
+  if (!confirm('This will delete ALL clients, balances, deposits and history. Continue?')) return;
+  if (prompt('Type RESET to confirm:') !== 'RESET') return;
+  $('rmsg').textContent = 'Deleting...';
+  try {
+    for (const name of ['ledger', 'deposits', 'accounts', 'users']) {
+      const snap = await getDocs(collection(db, name));
+      let batch = writeBatch(db), n = 0;
+      for (const d of snap.docs) {
+        batch.delete(d.ref); n++;
+        if (n === 400) { await batch.commit(); batch = writeBatch(db); n = 0; }
+      }
+      if (n) await batch.commit();
+    }
+    $('rmsg').textContent = 'Done. All data is reset.';
+    alert('Reset complete. Also delete the old client accounts (c......@investor.app) from Firebase Authentication.');
+  } catch (e) { $('rmsg').textContent = ''; alert('Error: ' + e.message); }
 };
 
 window.approve = async id => {
