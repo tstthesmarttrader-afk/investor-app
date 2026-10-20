@@ -94,7 +94,7 @@ td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {initializeAuth,browserSessionPersistence,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {getFirestore,doc,setDoc,updateDoc,deleteDoc,collection,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -106,7 +106,7 @@ const firebaseConfig = {
 const ADMIN_EMAIL = "waheedalisolangi262@gmail.com";
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const auth = initializeAuth(app, {persistence: browserSessionPersistence});
 const db = getFirestore(app);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -122,6 +122,7 @@ window.tab = n => ['pend','cl','hist','set'].forEach(x => $(x).classList.toggle(
 window.logout = () => signOut(auth);
 
 $('btnLogin').onclick = async () => {
+  $('lmsg').textContent = '';
   try { await signInWithEmailAndPassword(auth, $('aemail').value.trim(), $('apw').value); }
   catch (e) { $('lmsg').textContent = 'Wrong email or password.'; }
 };
@@ -185,7 +186,7 @@ function renderDeposits() {
   $('pend').innerHTML = pend.length ? '<div class="grid">' + pend.map(d => {
     const u = users[d.uid] || {};
     return '<div class="card">' +
-      '<b>' + esc(d.clientId) + '</b> - ' + esc(u.name) + '<div class="mut">' + esc(u.phone) + ' | ' + esc(dt(d.createdAt)) + '</div>' +
+      '<b>' + esc(d.clientId) + '</b> - ' + esc(u.name) + '<div class="mut">' + esc(dt(d.createdAt)) + '</div>' +
       '<div style="margin-top:6px">Claimed: <b>' + fmt(d.amount) + ' USDT</b></div>' +
       '<div class="mut" style="word-break:break-all">TxID: ' + esc(d.txid) + '</div>' +
       '<img class="shot" src="' + esc(d.image) + '" onclick="this.classList.toggle(\'big\')">' +
@@ -204,7 +205,7 @@ function renderDeposits() {
 function renderClients() {
   const rows = Object.keys(users).map(uid => {
     const u = users[uid], a = accounts[uid], t = todayByUid[uid] || 0, sus = !!u.suspended;
-    return '<tr><td>' + esc(u.clientId) + '</td><td>' + esc(u.name) + '</td><td>' + esc(u.phone) + '</td><td>' +
+    return '<tr><td>' + esc(u.clientId) + '</td><td>' + esc(u.name) + '</td><td>' +
       (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td>' +
       '<td class="' + (t > 0 ? 'up' : t < 0 ? 'down' : '') + '">' + (a ? sgn(t) : '-') + '</td>' +
       '<td class="' + (sus ? 'rejected' : 'approved') + '">' + (sus ? 'Suspended' : 'Active') + '</td><td>' +
@@ -212,7 +213,7 @@ function renderClients() {
       '<button class="sec" onclick="toggleSuspend(\'' + uid + '\')">' + (sus ? 'Activate' : 'Suspend') + '</button>' +
       '<button class="bad" onclick="delUser(\'' + uid + '\')">Delete</button></td></tr>';
   }).join('');
-  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Name</th><th>Mobile</th><th>Account ID</th><th>Balance</th><th>Today</th><th>Status</th><th>Actions</th></tr>' + rows;
+  $('cltable').innerHTML = '<tr><th>Client ID</th><th>Name</th><th>Account ID</th><th>Balance</th><th>Today</th><th>Status</th><th>Actions</th></tr>' + rows;
 }
 
 window.toggleSuspend = async uid => {
@@ -223,7 +224,7 @@ window.toggleSuspend = async uid => {
 
 window.delUser = async uid => {
   const u = users[uid];
-  if (!confirm('DELETE ' + u.name + ' (' + u.phone + ')?\nTheir balance, deposits and history will be permanently removed.')) return;
+  if (!confirm('DELETE ' + u.name + ' (' + u.clientId + ')?\nTheir balance, deposits and history will be permanently removed.')) return;
   if (prompt('Type DELETE to confirm:') !== 'DELETE') return;
   try {
     for (const d of deposits.filter(x => x.uid === uid)) await deleteDoc(doc(db, 'deposits', d.id));
