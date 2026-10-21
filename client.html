@@ -82,6 +82,8 @@ svg{width:100%;height:auto;display:block}
       </div>
     </div>
 
+    <div class="card"><b>Live Investor Updates</b><div id="feed"></div></div>
+
     <div class="card">
       <b>Daily Profit / Loss (last 30 days)</b>
       <div id="chart"></div>
@@ -219,4 +221,163 @@ $('btnPw').onclick = async () => {
     const u = auth.currentUser;
     await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, p0));
     await updatePassword(u, p1);
-    $('cpw0').value = ''; $('cpw1').value = '';
+    $('cpw0').value = ''; $('cpw1').value = ''; $('cpw2').value = '';
+    el.textContent = 'Password changed successfully.';
+  } catch (e) { el.textContent = 'Current password is wrong or try logging in again.'; }
+};
+
+$('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => {
+    const sc = Math.min(1, 900 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = img.width * sc; c.height = img.height * sc;
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    imgData = c.toDataURL('image/jpeg', 0.6);
+    URL.revokeObjectURL(url);
+    $('prev').src = imgData; $('prev').classList.remove('hide');
+  };
+  img.src = url;
+};
+
+$('btnDep').onclick = async () => {
+  const user = auth.currentUser;
+  const amount = parseFloat($('amt').value), txid = $('txid').value.trim();
+  if (!(amount > 0) || !txid || !imgData) return dmsg('Amount, TxID and screenshot are all required.');
+  if (amount < minDep) return dmsg('Minimum deposit is ' + fmt(minDep) + ' USDT.');
+  if (!myClientId) return dmsg('Account is still loading. Please try again.');
+  try {
+    await addDoc(collection(db, 'deposits'), {uid: user.uid, clientId: myClientId, amount, txid, image: imgData, status: 'pending', createdAt: serverTimestamp()});
+    $('amt').value = ''; $('txid').value = ''; $('file').value = '';
+    $('prev').classList.add('hide'); imgData = null;
+    dmsg('Request submitted. Please wait for approval.');
+  } catch (e) { dmsg('Error: ' + (e.code || e.message)); }
+};
+
+$('btnWd').onclick = async () => {
+  const user = auth.currentUser, el = $('wmsg');
+  const amount = parseFloat($('wamt').value), address = $('waddr').value.trim(), network = $('wnet').value.trim();
+  if (!(amount > 0) || !address) return el.textContent = 'Amount and your Binance ID / address are required.';
+  if (!hasAccount) return el.textContent = 'You have no balance yet.';
+  if (amount > myBalance) return el.textContent = 'Amount is more than your balance.';
+  if (!myClientId) return el.textContent = 'Account is still loading. Please try again.';
+  try {
+    await addDoc(collection(db, 'withdrawals'), {uid: user.uid, clientId: myClientId, amount, address, network, status: 'pending', createdAt: serverTimestamp()});
+    $('wamt').value = ''; $('waddr').value = ''; $('wnet').value = '';
+    el.textContent = 'Withdrawal request submitted. Please wait for approval.';
+  } catch (e) { el.textContent = 'Error: ' + (e.code || e.message); }
+};
+
+function drawChart(arr) {
+  const days = [], map = {};
+  for (let i = 29; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const k = dkey(d); days.push(k); map[k] = 0; }
+  arr.forEach(x => {
+    if ((x.type === 'profit' || x.type === 'loss') && x.createdAt && x.createdAt.toDate) {
+      const k = dkey(x.createdAt.toDate());
+      if (k in map) map[k] += Number(x.amount) || 0;
+    }
+  });
+  const vals = days.map(k => map[k]);
+  const max = Math.max(1, ...vals.map(v => Math.abs(v)));
+  let bars = '';
+  vals.forEach((v, i) => {
+    const h = Math.abs(v) / max * 50, x = 5 + i * 9.6, y = v >= 0 ? 60 - h : 60;
+    bars += '<rect x="' + x + '" y="' + y + '" width="7" height="' + Math.max(h, v ? 1 : 0) + '" rx="1" fill="' + (v >= 0 ? '#2ecc71' : '#e74c3c') + '"/>';
+  });
+  $('chart').innerHTML = '<svg viewBox="0 0 300 120"><line x1="0" y1="60" x2="300" y2="60" stroke="#2c3652"/>' + bars +
+    '<text x="2" y="10" fill="#8b95ad" font-size="8">+' + fmt(max) + '</text><text x="2" y="118" fill="#8b95ad" font-size="8">-' + fmt(max) + '</text></svg>';
+}
+
+onAuthStateChanged(auth, user => {
+  unsubs.forEach(u => u()); unsubs = []; myClientId = ''; myBalance = 0; hasAccount = false;
+  if (registering) return;
+  if (user && !String(user.email || '').endsWith('@investor.app')) { signOut(auth); return; }
+  $('auth').classList.toggle('hide', !!user);
+  $('app').classList.toggle('hide', !user);
+  if (!user) return;
+  const uid = user.uid;
+
+  unsubs.push(onSnapshot(doc(db, 'users', uid), s => {
+    if (registering) return;
+    if (!s.exists()) { signOut(auth); msg('This account was not found or has been deleted.'); return; }
+    const d = s.data();
+    if (d.suspended) { signOut(auth); msg('Your account is suspended. Please contact the admin.'); return; }
+    myClientId = d.clientId || '';
+    $('cid').textContent = myClientId || '-';
+    $('uname').textContent = d.name || '-';
+  }, e => msg('Error: ' + e.code)));
+
+  unsubs.push(onSnapshot(doc(db, 'accounts', uid), s => {
+    const a = s.data();
+    hasAccount = !!a; myBalance = a ? Number(a.balance) || 0 : 0;
+    $('accid').textContent = a ? a.accountId : 'Available after first approval';
+    $('bal').textContent = fmt(myBalance);
+  }, e => msg('Error: ' + e.code)));
+
+  unsubs.push(onSnapshot(collection(db, 'feed'), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ((b.at && b.at.seconds) || 9e9) - ((a.at && a.at.seconds) || 9e9)).slice(0, 12);
+    $('feed').innerHTML = arr.map(d =>
+      '<div class="row"><span>User ' + esc(d.cid) + ' today earning</span><b class="' + (d.amount >= 0 ? 'up' : 'down') + '">' + sgn(d.amount) + '$</b></div>'
+    ).join('') || '<div class="mut">No updates yet.</div>';
+  }));
+
+  unsubs.push(onSnapshot(doc(db, 'settings', 'public'), s => {
+    const d = s.data();
+    if (!d) return;
+    minDep = Number(d.minDeposit) || 0;
+    $('mindep').textContent = minDep > 0 ? 'Minimum deposit: ' + fmt(minDep) + ' USDT' : '';
+    $('bin').innerHTML =
+      (d.binanceId ? 'Binance ID: <b>' + esc(d.binanceId) + '</b><br>' : '') +
+      (d.address ? 'Address: <b>' + esc(d.address) + '</b><br>' : '') +
+      (d.network ? 'Network: <b>' + esc(d.network) + '</b><br>' : '') +
+      (d.note ? '<span class="mut">' + esc(d.note) + '</span>' : '');
+    const a = $('ann');
+    if (d.announcement) { a.textContent = '📢 ' + d.announcement; a.classList.remove('hide'); } else a.classList.add('hide');
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'deposits'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    $('deps').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
+    ).join('') || '<div class="mut">No requests yet.</div>';
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'withdrawals'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    $('wds').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
+    ).join('') || '<div class="mut">No requests yet.</div>';
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'ledger'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    let today = 0, tdep = 0, tprof = 0, twd = 0;
+    arr.forEach(d => {
+      const a = Number(d.amount) || 0;
+      if (d.type === 'deposit') tdep += a;
+      else if (d.type === 'withdrawal') twd += Math.abs(a);
+      else if (d.type === 'profit' || d.type === 'loss') {
+        tprof += a;
+        if (d.createdAt && d.createdAt.toDate && d.createdAt.toDate() >= start) today += a;
+      }
+    });
+    const el = $('earn');
+    el.textContent = sgn(today);
+    el.className = 'earn ' + (today > 0 ? 'up' : today < 0 ? 'down' : 'flat');
+    $('tdep').textContent = fmt(tdep);
+    $('twd').textContent = fmt(twd);
+    const tp = $('tprof'); tp.textContent = sgn(tprof); tp.className = tprof > 0 ? 'up' : tprof < 0 ? 'down' : '';
+    drawChart(arr);
+    $('led').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + esc(d.type) + (d.note ? ' - ' + esc(d.note) : '') + '<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.type) + '">' + sgn(d.amount) + '</b></div>'
+    ).join('') || '<div class="mut">No history yet.</div>';
+  }));
+});
+</script>
+</body>
+</html>
