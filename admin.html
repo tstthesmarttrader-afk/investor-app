@@ -8,46 +8,60 @@
 <style>
 :root{--bg:#0b101c;--card:#161e32;--card2:#1c2640;--tx:#eef1f8;--mut:#8b95ad;--ac:#f0b90b;--ac2:#f8d56b;--ok:#2ecc71;--bad:#e74c3c;--line:#27324f}
 *{box-sizing:border-box}
+html,body{height:100%}
 body{margin:0;font-family:'Poppins',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 20px;background:rgba(22,30,50,.95);backdrop-filter:blur(8px);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
-.logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:18px}
-nav{display:flex;flex-wrap:wrap;gap:6px}
-section{padding:20px;max-width:1150px;margin:auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-.card h3,h4{margin:0 0 8px;font-weight:600}
-h4{margin:16px 0 10px;font-size:15px}
-input,button,textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0e1526;color:var(--tx);font-size:13px;font-family:inherit}
-input:focus,textarea:focus{outline:none;border-color:var(--ac)}
+.layout{display:flex;min-height:100vh;width:100%}
+aside{width:230px;flex:0 0 230px;background:#0e1526;border-right:1px solid var(--line);padding:16px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;margin:4px 6px 16px}
+.logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:19px}
+aside button.nv{width:100%;text-align:left;background:transparent;color:var(--mut);border:0;padding:11px 12px;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:inherit}
+aside button.nv:hover{background:var(--card2);color:var(--tx)}
+aside button.nv.on{background:linear-gradient(135deg,rgba(240,185,11,.2),rgba(240,185,11,.05));color:var(--ac2);border:1px solid rgba(240,185,11,.3)}
+.cnt{background:var(--bad);color:#fff;border-radius:20px;font-size:11px;padding:1px 8px;font-weight:700}
+.cnt.z{display:none}
+.spacer{flex:1}
+main{flex:1;min-width:0;padding:22px 26px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px}
+.top h1{margin:0;font-size:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.card h3{margin:0 0 10px;font-size:15px;font-weight:600}
+h4{margin:18px 0 10px;font-size:15px}
+input,button,textarea,select{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0e1526;color:var(--tx);font-size:13px;font-family:inherit}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ac)}
 button{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1400;font-weight:700;border:0;cursor:pointer;margin:2px;transition:transform .12s}
 button:active{transform:scale(.96)}
 button.sec{background:var(--card2);color:var(--tx);border:1px solid var(--line)}
 button.bad{background:linear-gradient(135deg,#e74c3c,#ff7b6b);color:#fff}
-nav button{background:var(--card2);color:var(--tx);border:1px solid var(--line)}
-nav button.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1400}
-.box{max-width:360px;margin:12vh auto;background:var(--card);padding:24px;border-radius:18px;border:1px solid var(--line)}
+button.sm{padding:6px 10px;font-size:12px}
+.box{max-width:360px;margin:14vh auto;background:var(--card);padding:26px;border-radius:18px;border:1px solid var(--line)}
 .box input{width:100%;margin:6px 0}
-.mut{color:var(--mut);font-size:12px}.hide{display:none}
+.mut{color:var(--mut);font-size:12px}.hide{display:none!important}
 table{width:100%;border-collapse:collapse}
 td,th{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;white-space:nowrap}
 th{color:var(--mut);font-weight:500;font-size:12px}
+tr:hover td{background:rgba(255,255,255,.02)}
 .up{color:var(--ok)}.down{color:var(--bad)}
 .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
 .b-pending{background:rgba(240,185,11,.15);color:var(--ac)}
 .b-approved,.b-active{background:rgba(46,204,113,.15);color:var(--ok)}
 .b-rejected,.b-suspended{background:rgba(231,76,60,.15);color:var(--bad)}
-.shot{max-width:160px;border-radius:10px;cursor:zoom-in;display:block;margin:8px 0}
+.shot{max-width:180px;border-radius:10px;cursor:zoom-in;display:block;margin:8px 0}
 .shot.big{max-width:100%}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;padding:20px 20px 0;max-width:1150px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px}
 .stat{border-radius:16px;padding:16px;background:linear-gradient(135deg,#1b2a52,#101a3a 60%,#4a3a08 130%);border:1px solid #2f3d66}
 .stat span{font-size:12px;color:#aab4d0}
 .stat b{font-size:26px;display:block;margin-top:4px;font-weight:700}
+.two{display:grid;grid-template-columns:2fr 1fr;gap:16px}
 .set input,.set textarea{width:100%;margin:5px 0}
 .tbl{overflow-x:auto}
-.daily{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
-.daily input{width:160px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.bar input{width:170px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.mbox{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;width:min(900px,100%);max-height:88vh;overflow:auto}
 .danger{border:1px solid var(--bad)}
+svg{width:100%;height:auto;display:block}
+@media(max-width:900px){.layout{flex-direction:column}aside{width:100%;flex:none;height:auto;position:static;flex-direction:row;flex-wrap:wrap}.spacer{display:none}.two{grid-template-columns:1fr}main{padding:14px}}
 </style>
 </head>
 <body>
@@ -60,69 +74,100 @@ th{color:var(--mut);font-weight:500;font-size:12px}
   <div id="lmsg" class="mut"></div>
 </div>
 
-<div id="main" class="hide">
-  <header>
-    <div class="brand"><div class="logo">💼</div>Admin Dashboard</div>
-    <nav id="nav">
-      <button class="on" data-t="pend">📥 Pending (<span id="pc">0</span>)</button>
-      <button data-t="cl">👥 Clients</button>
-      <button data-t="hist">📜 History</button>
-      <button data-t="logs">🕘 Activity</button>
-      <button data-t="set">⚙️ Settings</button>
-      <button class="bad" onclick="logout()">Logout</button>
-    </nav>
-  </header>
+<div id="main" class="layout hide">
+  <aside id="nav">
+    <div class="brand"><div class="logo">💼</div>Admin Panel</div>
+    <button class="nv on" data-t="dash">📊 Dashboard</button>
+    <button class="nv" data-t="pend">📥 Pending <span class="cnt z" id="pc">0</span></button>
+    <button class="nv" data-t="cl">👥 Clients</button>
+    <button class="nv" data-t="earn">🚀 Daily Earning</button>
+    <button class="nv" data-t="hist">📜 History</button>
+    <button class="nv" data-t="logs">🕘 Activity Log</button>
+    <button class="nv" data-t="set">⚙️ Settings</button>
+    <div class="spacer"></div>
+    <button class="nv" id="btnSound">🔔 Sound: ON</button>
+    <button class="nv" onclick="logout()">🚪 Logout</button>
+  </aside>
 
-  <div class="stats">
-    <div class="stat"><span>👥 Total Clients</span><b id="st_cl">0</b></div>
-    <div class="stat"><span>💰 Total Balance (USDT)</span><b id="st_bal">0.00</b></div>
-    <div class="stat"><span>📥 Pending Requests</span><b id="st_pend">0</b></div>
-    <div class="stat"><span>📈 Today's P/L (USDT)</span><b id="st_today">0.00</b></div>
-  </div>
+  <main>
+    <div class="top"><h1 id="ttl">Dashboard</h1><span class="mut" id="clock"></span></div>
 
-  <section id="pend"></section>
-
-  <section id="cl" class="hide">
-    <div class="card">
-      <h3>📊 Daily Earning</h3>
-      <div class="mut">Enter today's result in %. Use a minus sign for a loss. It updates every active investor instantly.</div>
-      <div class="daily">
-        <input id="d_pct" type="number" step="any" placeholder="Today's % (e.g. 1.5)">
-        <input id="d_note" placeholder="Note (optional)">
-        <button onclick="publishDaily()">🚀 Publish to all clients</button>
+    <section id="dash">
+      <div class="stats">
+        <div class="stat"><span>👥 Total Clients</span><b id="st_cl">0</b></div>
+        <div class="stat"><span>💰 Total Balance (USDT)</span><b id="st_bal">0.00</b></div>
+        <div class="stat"><span>📥 Total Deposited</span><b id="st_dep">0.00</b></div>
+        <div class="stat"><span>📤 Total Withdrawn</span><b id="st_wd">0.00</b></div>
+        <div class="stat"><span>📈 Total Profit / Loss</span><b id="st_prof">0.00</b></div>
+        <div class="stat"><span>⚡ Today's P/L</span><b id="st_today">0.00</b></div>
+        <div class="stat"><span>⏳ Pending Requests</span><b id="st_pend">0</b></div>
+        <div class="stat"><span>🟢 Active / 🔴 Suspended</span><b id="st_act">0 / 0</b></div>
       </div>
-      <div id="d_status" class="mut" style="margin-top:8px"></div>
-    </div>
-    <div class="card tbl">
-      <button class="sec" onclick="exportClients()">⬇️ Export Clients (CSV)</button>
-      <button class="sec" onclick="exportTx()">⬇️ Export Transactions (CSV)</button>
-      <table id="cltable"></table>
-    </div>
-  </section>
+      <div class="two">
+        <div class="card"><h3>📊 Daily P/L published (last 14 days)</h3><div id="dchart"></div></div>
+        <div class="card"><h3>🏆 Top 5 clients by balance</h3><div id="top5"></div></div>
+      </div>
+      <div class="card tbl"><h3>🕘 Recent activity</h3><div id="recent"></div></div>
+    </section>
 
-  <section id="hist" class="hide"></section>
-  <section id="logs" class="hide"></section>
+    <section id="pend" class="hide"></section>
 
-  <section id="set" class="hide">
-    <div class="card set">
-      <h3>⚙️ Deposit details & announcement</h3>
-      <input id="s_bin" placeholder="Binance ID (Pay ID)">
-      <input id="s_addr" placeholder="Wallet address (optional)">
-      <input id="s_net" placeholder="Network (e.g. TRC20)">
-      <input id="s_note" placeholder="Note (e.g. Send USDT only)">
-      <input id="s_min" type="number" step="any" placeholder="Minimum deposit in USDT (e.g. 50)">
-      <textarea id="s_ann" rows="3" placeholder="Announcement shown to all investors (leave empty to hide)"></textarea>
-      <button onclick="saveSettings()">Save</button>
-      <span id="smsg" class="mut"></span>
-    </div>
-    <div class="card danger">
-      <h3 style="color:var(--bad)">⚠️ Danger Zone</h3>
-      <div class="mut" style="margin:6px 0">Deletes ALL clients, balances, deposits, withdrawals and history. Settings are kept. This cannot be undone.</div>
-      <button class="bad" onclick="resetAll()">Reset All Data</button>
-      <span id="rmsg" class="mut"></span>
-    </div>
-  </section>
+    <section id="cl" class="hide">
+      <div class="card">
+        <div class="bar">
+          <input id="q" placeholder="🔍 Search ID or name" oninput="renderClients()">
+          <select id="fs" onchange="renderClients()"><option value="">All status</option><option value="a">Active</option><option value="s">Suspended</option></select>
+          <select id="fb" onchange="renderClients()"><option value="">All balances</option><option value="y">With balance</option><option value="n">No balance</option></select>
+          <button class="sec" onclick="exportClients()">⬇️ Clients CSV</button>
+          <button class="sec" onclick="exportTx()">⬇️ Transactions CSV</button>
+        </div>
+        <div class="tbl"><table id="cltable"></table></div>
+      </div>
+    </section>
+
+    <section id="earn" class="hide">
+      <div class="card">
+        <h3>🚀 Publish Daily Earning</h3>
+        <div class="mut">Enter today's ACTUAL result in %. Use a minus sign for a loss. It updates every active investor instantly. Publishing again replaces today's entry.</div>
+        <div class="bar">
+          <input id="d_pct" type="number" step="any" placeholder="Today's % (e.g. 1.5)">
+          <input id="d_note" placeholder="Note (optional)" style="width:240px">
+          <button onclick="publishDaily()">🚀 Publish to all clients</button>
+        </div>
+        <div class="bar"><span class="mut">Quick:</span>
+          <button class="sec sm" onclick="qp(0.5)">+0.5%</button><button class="sec sm" onclick="qp(1)">+1%</button><button class="sec sm" onclick="qp(1.5)">+1.5%</button><button class="sec sm" onclick="qp(-0.5)">-0.5%</button><button class="sec sm" onclick="qp(-1)">-1%</button>
+        </div>
+        <div id="d_status" class="mut"></div>
+      </div>
+      <div class="card tbl"><h3>📅 Published days</h3><div id="ehist"></div></div>
+    </section>
+
+    <section id="hist" class="hide"></section>
+    <section id="logs" class="hide"></section>
+
+    <section id="set" class="hide">
+      <div class="card set">
+        <h3>⚙️ Deposit details & announcement</h3>
+        <input id="s_bin" placeholder="Binance ID (Pay ID)">
+        <input id="s_addr" placeholder="Wallet address (optional)">
+        <input id="s_net" placeholder="Network (e.g. TRC20)">
+        <input id="s_note" placeholder="Note (e.g. Send USDT only)">
+        <input id="s_min" type="number" step="any" placeholder="Minimum deposit in USDT (e.g. 50)">
+        <textarea id="s_ann" rows="3" placeholder="Announcement shown to all investors (leave empty to hide)"></textarea>
+        <button onclick="saveSettings()">Save</button>
+        <span id="smsg" class="mut"></span>
+      </div>
+      <div class="card danger">
+        <h3 style="color:var(--bad)">⚠️ Danger Zone</h3>
+        <div class="mut" style="margin:6px 0">Deletes ALL clients, balances, deposits, withdrawals and history. Settings are kept. This cannot be undone.</div>
+        <button class="bad" onclick="resetAll()">Reset All Data</button>
+        <span id="rmsg" class="mut"></span>
+      </div>
+    </section>
+  </main>
 </div>
+
+<div id="modal" class="modal hide" onclick="if(event.target===this)closeM()"><div class="mbox" id="mbox"></div></div>
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -147,61 +192,58 @@ const sgn = n => (n > 0 ? '+' : '') + fmt(n);
 const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
 const sec = t => (t && t.seconds) || 9999999999;
 const badge = s => '<span class="badge b-' + esc(String(s).toLowerCase()) + '">' + esc(s) + '</span>';
+const cls = n => n > 0 ? 'up' : n < 0 ? 'down' : '';
 const dayKey = () => { const d = new Date(); return 'daily-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const log = (action, detail) => addDoc(collection(db, 'logs'), {action, detail: detail || '', at: serverTimestamp()}).catch(() => {});
 
 let users = {}, accounts = {}, deposits = [], withdrawals = [], ledgerDocs = [], logDocs = [], todayByUid = {}, unsubs = [], settingsLoaded = false;
+let soundOn = true, prevPend = null, started = false;
 
-const TABS = ['pend','cl','hist','logs','set'];
+const TABS = {dash:'Dashboard', pend:'Pending Requests', cl:'Clients', earn:'Daily Earning', hist:'History', logs:'Activity Log', set:'Settings'};
 window.tab = n => {
-  TABS.forEach(x => $(x).classList.toggle('hide', x !== n));
+  Object.keys(TABS).forEach(x => $(x).classList.toggle('hide', x !== n));
   document.querySelectorAll('#nav button[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === n));
+  $('ttl').textContent = TABS[n];
 };
 document.querySelectorAll('#nav button[data-t]').forEach(b => b.onclick = () => window.tab(b.dataset.t));
 window.logout = () => signOut(auth);
+$('btnSound').onclick = () => { soundOn = !soundOn; $('btnSound').textContent = '🔔 Sound: ' + (soundOn ? 'ON' : 'OFF'); };
+setInterval(() => { $('clock').textContent = new Date().toLocaleString(); }, 1000);
+
+function beep() {
+  if (!soundOn) return;
+  try {
+    const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.value = .15;
+    o.start(); setTimeout(() => { o.stop(); c.close(); }, 350);
+  } catch (e) {}
+}
 
 $('btnLogin').onclick = async () => {
   $('lmsg').textContent = 'Signing in...';
   try {
     const cred = await signInWithEmailAndPassword(auth, $('aemail').value.trim(), $('apw').value);
-    if (cred.user.email.toLowerCase() !== ADMIN_EMAIL) {
-      await signOut(auth);
-      $('lmsg').textContent = 'This is not an admin account.';
-    } else {
-      $('lmsg').textContent = '';
-      startAdmin(cred.user);
-    }
+    if (cred.user.email.toLowerCase() !== ADMIN_EMAIL) { await signOut(auth); $('lmsg').textContent = 'This is not an admin account.'; }
+    else { $('lmsg').textContent = ''; startAdmin(); }
   } catch (e) { $('lmsg').textContent = 'Login failed: ' + (e.code || e.message); }
 };
 
-let started = false;
 onAuthStateChanged(auth, user => {
-  if (user && user.email && user.email.toLowerCase() === ADMIN_EMAIL) startAdmin(user);
-  else if (user) { signOut(auth); }
+  if (user && user.email && user.email.toLowerCase() === ADMIN_EMAIL) startAdmin();
+  else if (user) signOut(auth);
   else { unsubs.forEach(u => u()); unsubs = []; started = false; $('login').classList.remove('hide'); $('main').classList.add('hide'); }
 });
 
-function startAdmin(user) {
+function startAdmin() {
   if (started) return;
-  started = true;
+  started = true; prevPend = null;
   $('login').classList.add('hide');
   $('main').classList.remove('hide');
-
-  unsubs.push(onSnapshot(collection(db, 'users'), s => {
-    users = {}; s.docs.forEach(d => users[d.id] = d.data()); renderAll();
-  }, e => $('lmsg').textContent = 'users: ' + e.code));
-  unsubs.push(onSnapshot(collection(db, 'accounts'), s => {
-    accounts = {}; s.docs.forEach(d => accounts[d.id] = d.data()); renderAll();
-  }));
-  unsubs.push(onSnapshot(collection(db, 'deposits'), s => {
-    deposits = s.docs.map(d => ({id: d.id, ...d.data()})); renderAll();
-  }));
-  unsubs.push(onSnapshot(collection(db, 'withdrawals'), s => {
-    withdrawals = s.docs.map(d => ({id: d.id, ...d.data()})); renderAll();
-  }));
-  unsubs.push(onSnapshot(collection(db, 'logs'), s => {
-    logDocs = s.docs.map(d => d.data()).sort((a, b) => sec(b.at) - sec(a.at)).slice(0, 150); renderLogs();
-  }));
+  unsubs.push(onSnapshot(collection(db, 'users'), s => { users = {}; s.docs.forEach(d => users[d.id] = d.data()); renderAll(); }, e => $('lmsg').textContent = 'users: ' + e.code));
+  unsubs.push(onSnapshot(collection(db, 'accounts'), s => { accounts = {}; s.docs.forEach(d => accounts[d.id] = d.data()); renderAll(); }));
+  unsubs.push(onSnapshot(collection(db, 'deposits'), s => { deposits = s.docs.map(d => ({id: d.id, ...d.data()})); renderAll(); }));
+  unsubs.push(onSnapshot(collection(db, 'withdrawals'), s => { withdrawals = s.docs.map(d => ({id: d.id, ...d.data()})); renderAll(); }));
+  unsubs.push(onSnapshot(collection(db, 'logs'), s => { logDocs = s.docs.map(d => d.data()).sort((a, b) => sec(b.at) - sec(a.at)).slice(0, 150); renderLogs(); renderRecent(); }));
   unsubs.push(onSnapshot(collection(db, 'ledger'), s => {
     ledgerDocs = s.docs.map(d => ({id: d.id, ...d.data()}));
     const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -210,7 +252,7 @@ function startAdmin(user) {
       if ((x.type === 'profit' || x.type === 'loss') && x.createdAt && x.createdAt.toDate && x.createdAt.toDate() >= start)
         todayByUid[x.uid] = (todayByUid[x.uid] || 0) + (Number(x.amount) || 0);
     });
-    renderAll(); renderDailyStatus();
+    renderAll(); renderDailyStatus(); renderEarnHist();
   }));
   unsubs.push(onSnapshot(doc(db, 'settings', 'public'), s => {
     const d = s.data();
@@ -223,81 +265,139 @@ function startAdmin(user) {
   }));
 }
 
-function renderAll() { renderClients(); renderDeposits(); renderStats(); }
+function renderAll() { renderClients(); renderDeposits(); renderStats(); renderTop(); }
+
+function renderStats() {
+  const us = Object.values(users), bal = Object.values(accounts).reduce((t, a) => t + (Number(a.balance) || 0), 0);
+  let dep = 0, wd = 0, prof = 0;
+  ledgerDocs.forEach(x => { const a = Number(x.amount) || 0; if (x.type === 'deposit') dep += a; else if (x.type === 'withdrawal') wd += Math.abs(a); else prof += a; });
+  const pend = deposits.filter(d => d.status === 'pending').length + withdrawals.filter(w => w.status === 'pending').length;
+  const t = Object.values(todayByUid).reduce((a, b) => a + b, 0);
+  $('st_cl').textContent = us.length; $('st_bal').textContent = fmt(bal); $('st_dep').textContent = fmt(dep); $('st_wd').textContent = fmt(wd);
+  const sp = $('st_prof'); sp.textContent = sgn(prof); sp.className = cls(prof);
+  const sd = $('st_today'); sd.textContent = sgn(t); sd.className = cls(t);
+  $('st_pend').textContent = pend;
+  const sus = us.filter(u => u.suspended).length; $('st_act').textContent = (us.length - sus) + ' / ' + sus;
+  const pc = $('pc'); pc.textContent = pend; pc.classList.toggle('z', !pend);
+  document.title = (pend ? '(' + pend + ') ' : '') + 'Investor Admin';
+  if (prevPend !== null && pend > prevPend) beep();
+  prevPend = pend;
+}
+
+function renderTop() {
+  const arr = Object.keys(accounts).map(uid => ({u: users[uid] || {}, b: Number(accounts[uid].balance) || 0})).sort((a, b) => b.b - a.b).slice(0, 5);
+  $('top5').innerHTML = arr.length ? arr.map((x, i) => '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)"><span>' + (i + 1) + '. ' + esc(x.u.clientId) + ' <span class="mut">' + esc(x.u.name) + '</span></span><b>' + fmt(x.b) + '</b></div>').join('') : '<div class="mut">No data yet.</div>';
+}
+
+function renderRecent() {
+  $('recent').innerHTML = '<table><tr><th>Time</th><th>Action</th><th>Details</th></tr>' + logDocs.slice(0, 8).map(l => '<tr><td>' + esc(dt(l.at)) + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.detail) + '</td></tr>').join('') + '</table>';
+}
+
+function batches() {
+  const m = {};
+  ledgerDocs.filter(x => x.batch).forEach(x => {
+    const b = m[x.batch] || (m[x.batch] = {key: x.batch, pct: x.pct, total: 0, n: 0, t: x.createdAt});
+    b.total += Number(x.amount) || 0; b.n++;
+  });
+  return Object.values(m).sort((a, b) => a.key < b.key ? 1 : -1);
+}
+
+function renderEarnHist() {
+  const bs = batches();
+  $('ehist').innerHTML = '<table><tr><th>Date</th><th>%</th><th>Clients</th><th>Total P/L (USDT)</th></tr>' + bs.map(b =>
+    '<tr><td>' + esc(b.key.replace('daily-', '')) + '</td><td class="' + cls(b.pct) + '">' + (b.pct > 0 ? '+' : '') + b.pct + '%</td><td>' + b.n + '</td><td class="' + cls(b.total) + '">' + sgn(b.total) + '</td></tr>').join('') + '</table>';
+  const last = bs.slice(0, 14).reverse(), max = Math.max(1, ...last.map(b => Math.abs(b.total)));
+  let bars = '';
+  last.forEach((b, i) => {
+    const h = Math.abs(b.total) / max * 60, x = 12 + i * 20, y = b.total >= 0 ? 70 - h : 70;
+    bars += '<rect x="' + x + '" y="' + y + '" width="14" height="' + Math.max(h, 1) + '" rx="3" fill="' + (b.total >= 0 ? '#2ecc71' : '#e74c3c') + '"/><text x="' + (x + 7) + '" y="146" fill="#8b95ad" font-size="7" text-anchor="middle">' + esc(b.key.slice(-5)) + '</text>';
+  });
+  $('dchart').innerHTML = last.length ? '<svg viewBox="0 0 300 150"><line x1="6" y1="70" x2="294" y2="70" stroke="#27324f" stroke-dasharray="3 3"/>' + bars + '</svg>' : '<div class="mut">No published days yet.</div>';
+}
 
 function renderDailyStatus() {
   const old = ledgerDocs.filter(x => x.batch === dayKey());
-  $('d_status').textContent = old.length
-    ? "Today's earning is already published: " + (old[0].pct > 0 ? '+' : '') + old[0].pct + '% to ' + old.length + ' client(s). Publishing again will replace it.'
-    : "Today's earning is not published yet.";
+  $('d_status').textContent = old.length ? "Today's earning is already published: " + (old[0].pct > 0 ? '+' : '') + old[0].pct + '% to ' + old.length + ' client(s). Publishing again will replace it.' : "Today's earning is not published yet.";
 }
-
-function renderStats() {
-  $('st_cl').textContent = Object.keys(users).length;
-  $('st_bal').textContent = fmt(Object.values(accounts).reduce((t, a) => t + (Number(a.balance) || 0), 0));
-  $('st_pend').textContent = deposits.filter(d => d.status === 'pending').length + withdrawals.filter(w => w.status === 'pending').length;
-  const t = Object.values(todayByUid).reduce((a, b) => a + b, 0);
-  const el = $('st_today');
-  el.textContent = sgn(t);
-  el.className = t > 0 ? 'up' : t < 0 ? 'down' : '';
-}
+window.qp = v => { $('d_pct').value = v; };
 
 function renderDeposits() {
   const pend = deposits.filter(d => d.status === 'pending').sort((a, b) => sec(a.createdAt) - sec(b.createdAt));
   const pw = withdrawals.filter(w => w.status === 'pending').sort((a, b) => sec(a.createdAt) - sec(b.createdAt));
-  $('pc').textContent = pend.length + pw.length;
-
   $('pend').innerHTML =
     '<h4>💰 Deposit requests</h4>' +
     (pend.length ? '<div class="grid">' + pend.map(d => {
       const u = users[d.uid] || {};
-      return '<div class="card">' +
-        '<b>' + esc(d.clientId) + '</b> - ' + esc(u.name) + ' ' + badge('pending') + '<div class="mut">' + esc(dt(d.createdAt)) + '</div>' +
+      return '<div class="card"><b>' + esc(d.clientId) + '</b> - ' + esc(u.name) + ' ' + badge('pending') + '<div class="mut">' + esc(dt(d.createdAt)) + '</div>' +
         '<div style="margin-top:6px">Claimed: <b>' + fmt(d.amount) + ' USDT</b></div>' +
         '<div class="mut" style="word-break:break-all">TxID: ' + esc(d.txid) + '</div>' +
         '<img class="shot" src="' + esc(d.image) + '" onclick="this.classList.toggle(\'big\')">' +
         '<div>Verified amount: <input id="amt_' + d.id + '" type="number" step="any" value="' + esc(d.amount) + '" style="width:110px"></div>' +
-        '<button onclick="approve(\'' + d.id + '\')">✅ Approve</button>' +
-        '<button class="bad" onclick="reject(\'' + d.id + '\')">Reject</button></div>';
+        '<button onclick="approve(\'' + d.id + '\')">✅ Approve</button><button class="bad" onclick="reject(\'' + d.id + '\')">Reject</button></div>';
     }).join('') + '</div>' : '<div class="mut">No pending deposits.</div>') +
     '<h4>📤 Withdrawal requests</h4>' +
     (pw.length ? '<div class="grid">' + pw.map(w => {
       const u = users[w.uid] || {}, a = accounts[w.uid];
-      return '<div class="card">' +
-        '<b>' + esc(w.clientId) + '</b> - ' + esc(u.name) + ' ' + badge('pending') + '<div class="mut">' + esc(dt(w.createdAt)) + '</div>' +
+      return '<div class="card"><b>' + esc(w.clientId) + '</b> - ' + esc(u.name) + ' ' + badge('pending') + '<div class="mut">' + esc(dt(w.createdAt)) + '</div>' +
         '<div style="margin-top:6px">Amount: <b>' + fmt(w.amount) + ' USDT</b> <span class="mut">(balance ' + fmt(a && a.balance) + ')</span></div>' +
         '<div class="mut" style="word-break:break-all">Send to: ' + esc(w.address) + (w.network ? ' (' + esc(w.network) + ')' : '') + '</div>' +
         '<div class="mut" style="margin:6px 0">Send the money on Binance first, then click Approve.</div>' +
-        '<button onclick="approveW(\'' + w.id + '\')">✅ Approve (Paid)</button>' +
-        '<button class="bad" onclick="rejectW(\'' + w.id + '\')">Reject</button></div>';
+        '<button onclick="approveW(\'' + w.id + '\')">✅ Approve (Paid)</button><button class="bad" onclick="rejectW(\'' + w.id + '\')">Reject</button></div>';
     }).join('') + '</div>' : '<div class="mut">No pending withdrawals.</div>');
 
   const done = deposits.filter(d => d.status !== 'pending').map(d => ({...d, kind: '💰 Deposit', appr: d.approvedAmount}))
     .concat(withdrawals.filter(w => w.status !== 'pending').map(w => ({...w, kind: '📤 Withdrawal', appr: w.status === 'approved' ? w.amount : null})))
-    .sort((a, b) => sec(b.processedAt) - sec(a.processedAt)).slice(0, 100);
+    .sort((a, b) => sec(b.processedAt) - sec(a.processedAt)).slice(0, 150);
   $('hist').innerHTML = '<div class="card tbl"><table><tr><th>Type</th><th>Client</th><th>Requested</th><th>Approved</th><th>Status</th><th>Time</th></tr>' +
-    done.map(d => '<tr><td>' + d.kind + '</td><td>' + esc(d.clientId) + '</td><td>' + fmt(d.amount) + '</td><td>' + (d.appr != null ? fmt(d.appr) : '-') +
-      '</td><td>' + badge(d.status) + '</td><td>' + esc(dt(d.processedAt)) + '</td></tr>').join('') + '</table></div>';
+    done.map(d => '<tr><td>' + d.kind + '</td><td>' + esc(d.clientId) + '</td><td>' + fmt(d.amount) + '</td><td>' + (d.appr != null ? fmt(d.appr) : '-') + '</td><td>' + badge(d.status) + '</td><td>' + esc(dt(d.processedAt)) + '</td></tr>').join('') + '</table></div>';
 }
 
 function renderLogs() {
-  $('logs').innerHTML = '<div class="card tbl"><table><tr><th>Time</th><th>Action</th><th>Details</th></tr>' +
-    logDocs.map(l => '<tr><td>' + esc(dt(l.at)) + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.detail) + '</td></tr>').join('') + '</table></div>';
+  $('logs').innerHTML = '<div class="card tbl"><table><tr><th>Time</th><th>Action</th><th>Details</th></tr>' + logDocs.map(l => '<tr><td>' + esc(dt(l.at)) + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.detail) + '</td></tr>').join('') + '</table></div>';
 }
 
+window.renderClients = renderClients;
 function renderClients() {
-  const rows = Object.keys(users).map(uid => {
+  const q = ($('q') ? $('q').value : '').toLowerCase().trim(), fs = $('fs') ? $('fs').value : '', fb = $('fb') ? $('fb').value : '';
+  const rows = Object.keys(users).filter(uid => {
+    const u = users[uid], a = accounts[uid], b = a ? Number(a.balance) || 0 : 0;
+    if (q && !(String(u.clientId).toLowerCase().includes(q) || String(u.name).toLowerCase().includes(q))) return false;
+    if (fs === 'a' && u.suspended) return false;
+    if (fs === 's' && !u.suspended) return false;
+    if (fb === 'y' && b <= 0) return false;
+    if (fb === 'n' && b > 0) return false;
+    return true;
+  }).map(uid => {
     const u = users[uid], a = accounts[uid], t = todayByUid[uid] || 0, sus = !!u.suspended;
-    return '<tr><td><b>' + esc(u.clientId) + '</b></td><td>' + esc(u.name) + '</td><td>' +
-      (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td>' +
-      '<td class="' + (t > 0 ? 'up' : t < 0 ? 'down' : '') + '">' + (a ? sgn(t) : '-') + '</td>' +
-      '<td>' + badge(sus ? 'Suspended' : 'Active') + '</td><td>' +
-      (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '') +
-      '<button class="sec" onclick="toggleSuspend(\'' + uid + '\')">' + (sus ? 'Activate' : 'Suspend') + '</button>' +
-      '<button class="bad" onclick="delUser(\'' + uid + '\')">Delete</button></td></tr>';
+    return '<tr><td><b>' + esc(u.clientId) + '</b></td><td>' + esc(u.name) + '</td><td>' + (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td>' +
+      '<td class="' + cls(t) + '">' + (a ? sgn(t) : '-') + '</td><td>' + badge(sus ? 'Suspended' : 'Active') + '</td><td>' +
+      '<button class="sec sm" onclick="viewC(\'' + uid + '\')">👁 View</button>' +
+      '<button class="sec sm" onclick="editName(\'' + uid + '\')">✏️ Name</button>' +
+      (a ? '<button class="sm" onclick="pl(\'' + uid + '\')">+ P/L</button>' : '') +
+      '<button class="sec sm" onclick="toggleSuspend(\'' + uid + '\')">' + (sus ? 'Activate' : 'Suspend') + '</button>' +
+      '<button class="bad sm" onclick="delUser(\'' + uid + '\')">Delete</button></td></tr>';
   }).join('');
   $('cltable').innerHTML = '<tr><th>Client ID</th><th>Name</th><th>Account ID</th><th>Balance</th><th>Today</th><th>Status</th><th>Actions</th></tr>' + rows;
 }
+
+window.closeM = () => $('modal').classList.add('hide');
+window.viewC = uid => {
+  const u = users[uid] || {}, a = accounts[uid];
+  const led = ledgerDocs.filter(x => x.uid === uid).sort((x, y) => sec(y.createdAt) - sec(x.createdAt));
+  let dep = 0, wd = 0, pr = 0;
+  led.forEach(x => { const v = Number(x.amount) || 0; if (x.type === 'deposit') dep += v; else if (x.type === 'withdrawal') wd += Math.abs(v); else pr += v; });
+  $('mbox').innerHTML = '<div style="display:flex;justify-content:space-between"><h3>👤 ' + esc(u.name) + ' (' + esc(u.clientId) + ')</h3><button class="sec" onclick="closeM()">✖ Close</button></div>' +
+    '<div class="stats"><div class="stat"><span>Balance</span><b>' + fmt(a && a.balance) + '</b></div><div class="stat"><span>Deposited</span><b>' + fmt(dep) + '</b></div><div class="stat"><span>Withdrawn</span><b>' + fmt(wd) + '</b></div><div class="stat"><span>Profit/Loss</span><b class="' + cls(pr) + '">' + sgn(pr) + '</b></div></div>' +
+    '<div class="mut">Account ID: ' + esc(a ? a.accountId : '-') + ' | Joined: ' + esc(dt(u.createdAt)) + '</div>' +
+    '<div class="tbl"><table><tr><th>Time</th><th>Type</th><th>Note</th><th>Amount</th></tr>' + led.map(x => '<tr><td>' + esc(dt(x.createdAt)) + '</td><td>' + esc(x.type) + '</td><td>' + esc(x.note || '') + '</td><td class="' + cls(x.amount) + '">' + sgn(x.amount) + '</td></tr>').join('') + '</table></div>';
+  $('modal').classList.remove('hide');
+};
+
+window.editName = async uid => {
+  const n = prompt('New name:', users[uid].name || '');
+  if (!n || !n.trim()) return;
+  try { await updateDoc(doc(db, 'users', uid), {name: n.trim()}); log('Edit name', users[uid].clientId + ' -> ' + n.trim()); } catch (e) { alert('Error: ' + e.message); }
+};
 
 function csv(rows, name) {
   const t = rows.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
@@ -306,15 +406,11 @@ function csv(rows, name) {
   a.download = name + '.csv'; a.click();
 }
 window.exportClients = () => {
-  csv([['Client ID', 'Name', 'Account ID', 'Balance', 'Status']].concat(Object.keys(users).map(uid => {
-    const u = users[uid], a = accounts[uid];
-    return [u.clientId, u.name, a ? a.accountId : '', a ? fmt(a.balance) : '', u.suspended ? 'Suspended' : 'Active'];
-  })), 'clients');
+  csv([['Client ID', 'Name', 'Account ID', 'Balance', 'Status']].concat(Object.keys(users).map(uid => { const u = users[uid], a = accounts[uid]; return [u.clientId, u.name, a ? a.accountId : '', a ? fmt(a.balance) : '', u.suspended ? 'Suspended' : 'Active']; })), 'clients');
   log('Export', 'Clients CSV');
 };
 window.exportTx = () => {
-  const rows = ledgerDocs.slice().sort((a, b) => sec(a.createdAt) - sec(b.createdAt))
-    .map(x => [dt(x.createdAt), (users[x.uid] || {}).clientId || '', x.type, fmt(x.amount), x.note || '']);
+  const rows = ledgerDocs.slice().sort((a, b) => sec(a.createdAt) - sec(b.createdAt)).map(x => [dt(x.createdAt), (users[x.uid] || {}).clientId || '', x.type, fmt(x.amount), x.note || '']);
   csv([['Date', 'Client ID', 'Type', 'Amount', 'Note']].concat(rows), 'transactions');
   log('Export', 'Transactions CSV');
 };
@@ -322,8 +418,7 @@ window.exportTx = () => {
 window.toggleSuspend = async uid => {
   const u = users[uid]; const sus = !u.suspended;
   if (!confirm((sus ? 'Suspend ' : 'Activate ') + u.name + '?')) return;
-  try { await updateDoc(doc(db, 'users', uid), {suspended: sus}); log(sus ? 'Suspend' : 'Activate', u.clientId + ' ' + u.name); }
-  catch (e) { alert('Error: ' + e.message); }
+  try { await updateDoc(doc(db, 'users', uid), {suspended: sus}); log(sus ? 'Suspend' : 'Activate', u.clientId + ' ' + u.name); } catch (e) { alert('Error: ' + e.message); }
 };
 
 window.delUser = async uid => {
@@ -349,10 +444,7 @@ window.resetAll = async () => {
     for (const name of ['ledger', 'deposits', 'withdrawals', 'accounts', 'users', 'feed']) {
       const snap = await getDocs(collection(db, name));
       let batch = writeBatch(db), n = 0;
-      for (const d of snap.docs) {
-        batch.delete(d.ref); n++;
-        if (n === 400) { await batch.commit(); batch = writeBatch(db); n = 0; }
-      }
+      for (const d of snap.docs) { batch.delete(d.ref); n++; if (n === 400) { await batch.commit(); batch = writeBatch(db); n = 0; } }
       if (n) await batch.commit();
     }
     log('Reset', 'All data deleted');
@@ -368,14 +460,10 @@ window.approve = async id => {
   const depRef = doc(db, 'deposits', id), accRef = doc(db, 'accounts', dep0.uid);
   try {
     await runTransaction(db, async tx => {
-      const dep = await tx.get(depRef);
-      const acc = await tx.get(accRef);
+      const dep = await tx.get(depRef), acc = await tx.get(accRef);
       if (dep.data().status !== 'pending') throw new Error('Already processed.');
-      if (acc.exists()) {
-        tx.update(accRef, {balance: acc.data().balance + amt});
-      } else {
-        tx.set(accRef, {uid: dep0.uid, clientId: dep0.clientId, accountId: 'ACC' + Math.floor(100000 + Math.random() * 900000), balance: amt, createdAt: serverTimestamp()});
-      }
+      if (acc.exists()) tx.update(accRef, {balance: acc.data().balance + amt});
+      else tx.set(accRef, {uid: dep0.uid, clientId: dep0.clientId, accountId: 'ACC' + Math.floor(100000 + Math.random() * 900000), balance: amt, createdAt: serverTimestamp()});
       tx.update(depRef, {status: 'approved', approvedAmount: amt, processedAt: serverTimestamp()});
       tx.set(doc(collection(db, 'ledger')), {uid: dep0.uid, type: 'deposit', amount: amt, note: 'Deposit approved', createdAt: serverTimestamp()});
     });
@@ -427,8 +515,7 @@ window.pl = async uid => {
   const n = parseFloat(prompt('Enter amount (+ for profit, - for loss):'));
   if (!n) return;
   const note = prompt('Note (optional):', 'Daily result') || '';
-  try { await adjust(uid, n, note); log('Profit/Loss', (users[uid] || {}).clientId + ' ' + sgn(n)); }
-  catch (e) { alert(e.message); }
+  try { await adjust(uid, n, note); log('Profit/Loss', (users[uid] || {}).clientId + ' ' + sgn(n)); } catch (e) { alert(e.message); }
 };
 
 window.publishDaily = async () => {
@@ -436,10 +523,7 @@ window.publishDaily = async () => {
   if (isNaN(p) || p === 0) return alert("Enter today's % (e.g. 1.5 or -0.8).");
   const key = dayKey();
   const old = ledgerDocs.filter(x => x.batch === key);
-  const msg = old.length
-    ? "Today's earning is already published. Replace it with " + p + '%?'
-    : 'Publish ' + p + '% to every active client?';
-  if (!confirm(msg)) return;
+  if (!confirm(old.length ? "Today's earning is already published. Replace it with " + p + '%?' : 'Publish ' + p + '% to every active client?')) return;
   const note = $('d_note').value.trim() || 'Daily earning ' + (p > 0 ? '+' : '') + p + '%';
   let count = 0;
   try {
