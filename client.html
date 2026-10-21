@@ -129,7 +129,7 @@ svg{width:100%;height:auto;display:block}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {initializeAuth,browserSessionPersistence,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,EmailAuthProvider,reauthenticateWithCredential,updatePassword} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,EmailAuthProvider,reauthenticateWithCredential,updatePassword} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {getFirestore,doc,setDoc,addDoc,collection,query,where,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -139,8 +139,8 @@ const firebaseConfig = {
   appId: "1:872233236864:web:a447e0e297240256822965"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = initializeAuth(app, {persistence: browserSessionPersistence});
+const app = initializeApp(firebaseConfig, 'client');
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 const $ = id => document.getElementById(id);
