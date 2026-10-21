@@ -4,54 +4,82 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Investor App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1420;--card:#1a2133;--tx:#e8ecf5;--mut:#8b95ad;--ac:#f0b90b;--ok:#2ecc71;--bad:#e74c3c}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx)}
-.wrap{max-width:480px;margin:auto;padding:16px}
-.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px}
-input,button{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #2c3652;background:#10172a;color:var(--tx);font-size:15px}
-button{background:var(--ac);color:#000;font-weight:700;border:0;cursor:pointer}
-button.sec{background:#2c3652;color:var(--tx)}
-.mut{color:var(--mut);font-size:13px}
-.big{font-size:18px;font-weight:700;margin-bottom:8px}
-.bal{font-size:30px;font-weight:800;color:var(--ac)}
+:root{--bg:#0b101c;--card:#161e32;--card2:#1c2640;--tx:#eef1f8;--mut:#8b95ad;--ac:#f0b90b;--ac2:#f8d56b;--ok:#2ecc71;--bad:#e74c3c;--line:#27324f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.wrap{max-width:480px;margin:auto;padding:16px 16px 100px}
+.brand{display:flex;align-items:center;gap:10px;margin:4px 0 16px}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(240,185,11,.35)}
+.brand h2{margin:0;font-size:20px;font-weight:700}
+.brand small{display:block;color:var(--mut);font-size:11px;font-weight:400}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.28);border:1px solid var(--line)}
+.card h3{margin:0 0 8px;font-size:15px;font-weight:600}
+input,button{width:100%;padding:13px;margin:6px 0;border-radius:12px;border:1px solid var(--line);background:#0e1526;color:var(--tx);font-size:14px;font-family:inherit}
+input:focus{outline:none;border-color:var(--ac)}
+button{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1400;font-weight:700;border:0;cursor:pointer;box-shadow:0 4px 14px rgba(240,185,11,.25);transition:transform .12s}
+button:active{transform:scale(.97)}
+button.sec{background:var(--card2);color:var(--tx);box-shadow:none;border:1px solid var(--line)}
+.mut{color:var(--mut);font-size:12px}
+.big{font-size:16px;font-weight:600;margin-bottom:6px}
 .hide{display:none}
-.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2c3652;font-size:14px}
-.pending{color:var(--ac)}.approved,.profit,.deposit{color:var(--ok)}.rejected,.loss,.withdrawal{color:var(--bad)}
-#prev{max-width:100%;border-radius:10px;margin-top:6px}
-.copy{word-break:break-all;background:#10172a;padding:8px;border-radius:8px;margin-top:4px}
-.stats{display:flex;gap:12px;margin-top:6px}
-.stat{flex:1;background:#10172a;border-radius:12px;padding:12px}
-.stat b{display:block;font-size:17px;margin-top:4px}
-.earn{font-size:26px;font-weight:800}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;gap:8px}
+.row:last-child{border-bottom:0}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-PENDING{background:rgba(240,185,11,.15);color:var(--ac)}
+.b-APPROVED{background:rgba(46,204,113,.15);color:var(--ok)}
+.b-REJECTED{background:rgba(231,76,60,.15);color:var(--bad)}
 .up{color:var(--ok)}.down{color:var(--bad)}.flat{color:var(--tx)}
-.idbox{background:#10172a;border:1px dashed var(--ac);border-radius:12px;padding:14px;text-align:center;margin:8px 0}
+.profit,.deposit{color:var(--ok)}.loss,.withdrawal{color:var(--bad)}
+#prev{max-width:100%;border-radius:12px;margin-top:6px}
+.copy{word-break:break-all;background:#0e1526;padding:10px;border-radius:12px;margin-top:6px;font-size:13px}
+.hero{background:linear-gradient(135deg,#1b2a52 0%,#101a3a 55%,#5a4508 120%);border:1px solid #2f3d66;position:relative;overflow:hidden}
+.hero:after{content:'';position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:rgba(240,185,11,.12)}
+.hero .lbl{font-size:12px;color:#aab4d0}
+.hero .bal{font-size:36px;font-weight:800;color:var(--ac2);line-height:1.2}
+.pill{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(255,255,255,.08);margin-top:4px}
+.pill.up{background:rgba(46,204,113,.18)}.pill.down{background:rgba(231,76,60,.18)}
+.ids{display:flex;gap:10px;margin-top:14px}
+.ids div{flex:1;background:rgba(255,255,255,.06);border-radius:12px;padding:8px 10px}
+.ids b{display:block;font-size:13px;margin-top:2px;word-break:break-all}
+.grid3{display:flex;gap:8px;margin-top:12px}
+.st{flex:1;background:#0e1526;border-radius:14px;padding:10px;text-align:center}
+.st b{display:block;font-size:14px;margin-top:3px}
+.idbox{background:#0e1526;border:1px dashed var(--ac);border-radius:14px;padding:14px;text-align:center;margin:8px 0}
 .idbox span{display:block;font-size:30px;font-weight:800;color:var(--ac);letter-spacing:1px}
-.ann{background:#2a2410;border:1px solid var(--ac);border-radius:12px;padding:12px;margin-bottom:14px;font-size:14px}
-.disc{font-size:12px;color:var(--mut);text-align:center;margin:10px 0 24px}
+.ann{background:linear-gradient(135deg,#2a2410,#1f1a0a);border:1px solid var(--ac);border-radius:14px;padding:12px;margin-bottom:14px;font-size:13px}
+.disc{font-size:11px;color:var(--mut);text-align:center;margin:10px 0 24px}
 svg{width:100%;height:auto;display:block}
-.ticker{overflow:hidden;background:#10172a;border:1px solid #2c3652;border-radius:12px;margin-bottom:14px;white-space:nowrap}
-.tk-in{display:inline-block;padding:10px 0 10px 100%;animation:tk 60s linear infinite}
+.ticker{position:relative;overflow:hidden;background:#0e1526;border:1px solid var(--ac);border-radius:14px;margin-bottom:14px;white-space:nowrap;box-shadow:0 0 14px rgba(240,185,11,.15)}
+.live{position:absolute;left:0;top:0;bottom:0;z-index:2;display:flex;align-items:center;gap:6px;padding:0 12px;background:#0e1526;font-size:11px;font-weight:700;color:#fff;border-right:1px solid var(--line)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--bad);animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.2}}
+.tk-in{display:inline-block;padding:11px 0 11px 100%;animation:tk 60s linear infinite}
 .tk-in:hover{animation-play-state:paused}
-.tk-it{display:inline-block;margin:0 22px;font-size:14px}
+.tk-it{display:inline-block;margin:0 22px;font-size:13px}
 @keyframes tk{to{transform:translateX(-100%)}}
+.nav{position:fixed;left:0;right:0;bottom:0;background:rgba(16,23,42,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;justify-content:center;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:20}
+.nav button{width:auto;flex:1;max-width:110px;margin:0;padding:8px 4px;background:transparent;color:var(--mut);box-shadow:none;border:0;font-size:11px;font-weight:600;border-radius:12px;line-height:1.3}
+.nav button span{display:block;font-size:19px}
+.nav button.on{color:var(--ac);background:rgba(240,185,11,.1)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h2>💼 Investor App</h2>
+  <div class="brand"><div class="logo">💼</div><div><h2>Investor App</h2><small>Smart Investment System</small></div></div>
 
   <div id="auth" class="card">
     <div id="loginBox">
-      <b>Login</b>
+      <h3>🔐 Login</h3>
       <input id="lid" placeholder="Login ID (e.g. C123456)" autocapitalize="characters">
       <input id="lpw" type="password" placeholder="Password">
       <button id="btnLogin">Login</button>
       <button class="sec" id="toReg">Create new account</button>
     </div>
     <div id="regBox" class="hide">
-      <b>Register</b>
+      <h3>📝 Register</h3>
       <input id="rname" placeholder="Full name">
       <input id="rpw" type="password" placeholder="Password (at least 6 characters)">
       <input id="rpw2" type="password" placeholder="Confirm password">
@@ -59,8 +87,8 @@ svg{width:100%;height:auto;display:block}
       <button class="sec" id="toLogin">Back to Login</button>
     </div>
     <div id="doneBox" class="hide">
-      <b>Registration successful!</b>
-      <div class="mut" style="margin-top:6px">Your Login ID is:</div>
+      <h3>✅ Registration successful!</h3>
+      <div class="mut">Your Login ID is:</div>
       <div class="idbox"><span id="newId"></span></div>
       <div class="mut">Save this ID. You need it with your password to log in.</div>
       <button id="toLogin2">Go to Login</button>
@@ -70,68 +98,80 @@ svg{width:100%;height:auto;display:block}
   </div>
 
   <div id="app" class="hide">
-    <div id="ann" class="ann hide"></div>
-    <div class="ticker"><div class="tk-in" id="tk"><span class="tk-it">Waiting for updates...</span></div></div>
 
-    <div class="card">
-      <div class="mut">Name</div><div id="uname" class="big">-</div>
-      <div class="mut">Client ID</div><div id="cid" class="big">-</div>
-      <div class="mut">Account ID</div><div id="accid" class="big">-</div>
-      <div class="stats">
-        <div class="stat"><div class="mut">Balance (USDT)</div><div id="bal" class="bal">0.00</div></div>
-        <div class="stat"><div class="mut">Today's Earning</div><div id="earn" class="earn flat">0.00</div></div>
+    <div class="pg" id="pg-home">
+      <div id="ann" class="ann hide"></div>
+      <div class="ticker"><div class="live"><span class="dot"></span>LIVE</div><div class="tk-in" id="tk"><span class="tk-it">Loading...</span></div></div>
+
+      <div class="card hero">
+        <div class="lbl">Total Balance (USDT)</div>
+        <div id="bal" class="bal">0.00</div>
+        <span id="earn" class="pill flat">0.00 today</span>
+        <div class="ids">
+          <div><span class="lbl">👤 Name</span><b id="uname">-</b></div>
+          <div><span class="lbl">🆔 Client ID</span><b id="cid">-</b></div>
+        </div>
+        <div class="ids"><div><span class="lbl">🏦 Account ID</span><b id="accid">-</b></div></div>
+        <div class="grid3">
+          <div class="st"><span class="mut">Deposited</span><b id="tdep">0.00</b></div>
+          <div class="st"><span class="mut">Profit</span><b id="tprof">0.00</b></div>
+          <div class="st"><span class="mut">Withdrawn</span><b id="twd">0.00</b></div>
+        </div>
       </div>
-      <div class="stats">
-        <div class="stat"><div class="mut">Total Deposited</div><b id="tdep">0.00</b></div>
-        <div class="stat"><div class="mut">Total Profit</div><b id="tprof">0.00</b></div>
-        <div class="stat"><div class="mut">Total Withdrawn</div><b id="twd">0.00</b></div>
+
+      <div class="card"><h3>📡 Live Investor Updates</h3><div id="feed"></div></div>
+      <div class="card"><h3>📊 Daily Profit / Loss (30 days)</h3><div id="chart"></div></div>
+    </div>
+
+    <div class="pg hide" id="pg-dep">
+      <div class="card">
+        <h3>💰 Make a Deposit</h3>
+        <div class="mut">Send your payment to the Binance ID / address below:</div>
+        <div id="bin" class="copy">Deposit details have not been set yet.</div>
+        <div id="mindep" class="mut" style="margin-top:6px"></div>
+        <input id="amt" type="number" step="any" placeholder="Amount (USDT)">
+        <input id="txid" placeholder="Binance TxID / Order ID">
+        <input id="file" type="file" accept="image/*">
+        <img id="prev" class="hide">
+        <button id="btnDep">Submit Deposit</button>
+        <div id="dmsg" class="mut"></div>
       </div>
+      <div class="card"><h3>🧾 My Deposit Requests</h3><div id="deps"></div></div>
     </div>
 
-    <div class="card"><b>Live Investor Updates</b><div id="feed"></div></div>
-
-    <div class="card">
-      <b>Daily Profit / Loss (last 30 days)</b>
-      <div id="chart"></div>
+    <div class="pg hide" id="pg-wd">
+      <div class="card">
+        <h3>📤 Request a Withdrawal</h3>
+        <input id="wamt" type="number" step="any" placeholder="Amount (USDT)">
+        <input id="waddr" placeholder="Your Binance ID / wallet address">
+        <input id="wnet" placeholder="Network (e.g. TRC20) - optional">
+        <button id="btnWd">Request Withdrawal</button>
+        <div id="wmsg" class="mut"></div>
+      </div>
+      <div class="card"><h3>🧾 My Withdrawal Requests</h3><div id="wds"></div></div>
     </div>
 
-    <div class="card">
-      <b>Make a Deposit</b>
-      <div class="mut" style="margin-top:6px">Send your payment to the Binance ID / address below:</div>
-      <div id="bin" class="copy">Deposit details have not been set yet.</div>
-      <div id="mindep" class="mut" style="margin-top:6px"></div>
-      <input id="amt" type="number" step="any" placeholder="Amount (USDT)">
-      <input id="txid" placeholder="Binance TxID / Order ID">
-      <input id="file" type="file" accept="image/*">
-      <img id="prev" class="hide">
-      <button id="btnDep">Submit</button>
-      <div id="dmsg" class="mut"></div>
+    <div class="pg hide" id="pg-hist">
+      <div class="card"><h3>📜 Account History</h3><div id="led"></div></div>
+      <div class="card">
+        <h3>🔑 Change Password</h3>
+        <input id="cpw0" type="password" placeholder="Current password">
+        <input id="cpw1" type="password" placeholder="New password (6+ characters)">
+        <input id="cpw2" type="password" placeholder="Confirm new password">
+        <button id="btnPw">Change Password</button>
+        <div id="pmsg" class="mut"></div>
+      </div>
+      <button class="sec" id="btnOut">Logout</button>
     </div>
 
-    <div class="card">
-      <b>Request a Withdrawal</b>
-      <input id="wamt" type="number" step="any" placeholder="Amount (USDT)">
-      <input id="waddr" placeholder="Your Binance ID / wallet address">
-      <input id="wnet" placeholder="Network (e.g. TRC20) - optional">
-      <button id="btnWd">Request Withdrawal</button>
-      <div id="wmsg" class="mut"></div>
-    </div>
-
-    <div class="card"><b>My Deposit Requests</b><div id="deps"></div></div>
-    <div class="card"><b>My Withdrawal Requests</b><div id="wds"></div></div>
-    <div class="card"><b>Account History</b><div id="led"></div></div>
-
-    <div class="card">
-      <b>Change Password</b>
-      <input id="cpw0" type="password" placeholder="Current password">
-      <input id="cpw1" type="password" placeholder="New password (6+ characters)">
-      <input id="cpw2" type="password" placeholder="Confirm new password">
-      <button id="btnPw">Change Password</button>
-      <div id="pmsg" class="mut"></div>
-    </div>
-
-    <button class="sec" id="btnOut">Logout</button>
     <div class="disc">Returns are not guaranteed. Trading involves risk, including loss of capital. Past performance does not guarantee future results.</div>
+
+    <div class="nav">
+      <button class="on" data-t="home"><span>🏠</span>Home</button>
+      <button data-t="dep"><span>💰</span>Deposit</button>
+      <button data-t="wd"><span>📤</span>Withdraw</button>
+      <button data-t="hist"><span>📜</span>History</button>
+    </div>
   </div>
 </div>
 
@@ -144,6 +184,13 @@ svg{width:100%;height:auto;display:block}
   g('toLogin2').onclick=function(){show('loginBox')};
   window.__show=show;
   window.__fbLoaded=false;
+  document.querySelectorAll('.nav button').forEach(function(b){
+    b.onclick=function(){
+      document.querySelectorAll('.nav button').forEach(function(x){x.classList.toggle('on',x===b)});
+      ['home','dep','wd','hist'].forEach(function(t){g('pg-'+t).classList.toggle('hide',t!==b.getAttribute('data-t'))});
+      window.scrollTo(0,0);
+    };
+  });
   setTimeout(function(){
     if(!window.__fbLoaded) g('amsg').textContent='Server connection failed. Refresh with Ctrl+Shift+R. If it still fails, try another browser or VPN.';
   },8000);
@@ -178,6 +225,7 @@ const sgn = n => (n > 0 ? '+' : '') + fmt(n);
 const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
 const ts = x => (x.createdAt && x.createdAt.seconds) || 9999999999;
 const dkey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const badge = s => '<span class="badge b-' + esc(String(s).toUpperCase()) + '">' + esc(String(s).toUpperCase()) + '</span>';
 let unsubs = [], imgData = null, myClientId = '', myBalance = 0, hasAccount = false, minDep = 0, registering = false;
 
 const tips = ['📈 Professional trading team manages your funds','🔒 Your balance is visible 24/7 in real time','💰 Withdraw anytime with a simple request','📊 Transparent daily profit and loss reports','🧾 Every deposit and withdrawal is recorded in your history','🤝 Dedicated support for every investor','⚠️ Returns are not guaranteed. Trade responsibly'];
@@ -289,13 +337,16 @@ function drawChart(arr) {
   });
   const vals = days.map(k => map[k]);
   const max = Math.max(1, ...vals.map(v => Math.abs(v)));
-  let bars = '';
-  vals.forEach((v, i) => {
-    const h = Math.abs(v) / max * 50, x = 5 + i * 9.6, y = v >= 0 ? 60 - h : 60;
-    bars += '<rect x="' + x + '" y="' + y + '" width="7" height="' + Math.max(h, v ? 1 : 0) + '" rx="1" fill="' + (v >= 0 ? '#2ecc71' : '#e74c3c') + '"/>';
-  });
-  $('chart').innerHTML = '<svg viewBox="0 0 300 120"><line x1="0" y1="60" x2="300" y2="60" stroke="#2c3652"/>' + bars +
-    '<text x="2" y="10" fill="#8b95ad" font-size="8">+' + fmt(max) + '</text><text x="2" y="118" fill="#8b95ad" font-size="8">-' + fmt(max) + '</text></svg>';
+  const pts = vals.map((v, i) => [10 + i * (280 / 29), 60 - v / max * 42]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = line + ' L' + pts[29][0].toFixed(1) + ' 60 L' + pts[0][0].toFixed(1) + ' 60 Z';
+  const lab = i => days[i].slice(5);
+  $('chart').innerHTML = '<svg viewBox="0 0 300 130"><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0b90b" stop-opacity=".45"/><stop offset="1" stop-color="#f0b90b" stop-opacity="0"/></linearGradient></defs>' +
+    '<line x1="10" y1="60" x2="290" y2="60" stroke="#27324f" stroke-dasharray="3 3"/>' +
+    '<path d="' + area + '" fill="url(#cg)"/><path d="' + line + '" fill="none" stroke="#f0b90b" stroke-width="2" stroke-linejoin="round"/>' +
+    pts.map((p, i) => vals[i] ? '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2" fill="' + (vals[i] >= 0 ? '#2ecc71' : '#e74c3c') + '"/>' : '').join('') +
+    '<text x="2" y="10" fill="#8b95ad" font-size="8">+' + fmt(max) + '</text><text x="2" y="108" fill="#8b95ad" font-size="8">-' + fmt(max) + '</text>' +
+    '<text x="10" y="124" fill="#8b95ad" font-size="8">' + lab(0) + '</text><text x="150" y="124" fill="#8b95ad" font-size="8" text-anchor="middle">' + lab(15) + '</text><text x="290" y="124" fill="#8b95ad" font-size="8" text-anchor="end">' + lab(29) + '</text></svg>';
 }
 
 onAuthStateChanged(auth, user => {
@@ -320,7 +371,7 @@ onAuthStateChanged(auth, user => {
   unsubs.push(onSnapshot(doc(db, 'accounts', uid), s => {
     const a = s.data();
     hasAccount = !!a; myBalance = a ? Number(a.balance) || 0 : 0;
-    $('accid').textContent = a ? a.accountId : 'Available after first approval';
+    $('accid').textContent = a ? a.accountId : 'After first approval';
     $('bal').textContent = fmt(myBalance);
   }, e => msg('Error: ' + e.code)));
 
@@ -329,7 +380,7 @@ onAuthStateChanged(auth, user => {
     $('tk').innerHTML = tips.map(t => '<span class="tk-it">' + t + '</span>').join('') +
       arr.map(d => '<span class="tk-it">User ' + esc(d.cid) + ' today earning <b class="' + (d.amount >= 0 ? 'up' : 'down') + '">' + sgn(d.amount) + '$</b></span>').join('');
     $('feed').innerHTML = arr.map(d =>
-      '<div class="row"><span>User ' + esc(d.cid) + ' today earning</span><b class="' + (d.amount >= 0 ? 'up' : 'down') + '">' + sgn(d.amount) + '$</b></div>'
+      '<div class="row"><span>👤 User ' + esc(d.cid) + ' today earning</span><b class="' + (d.amount >= 0 ? 'up' : 'down') + '">' + sgn(d.amount) + '$</b></div>'
     ).join('') || '<div class="mut">No updates yet.</div>';
   }));
 
@@ -350,16 +401,14 @@ onAuthStateChanged(auth, user => {
   unsubs.push(onSnapshot(query(collection(db, 'deposits'), where('uid', '==', uid)), s => {
     const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
     $('deps').innerHTML = arr.map(d =>
-      '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
-      '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
+      '<div class="row"><span><b>' + fmt(d.amount) + ' USDT</b><br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' + badge(d.status) + '</div>'
     ).join('') || '<div class="mut">No requests yet.</div>';
   }));
 
   unsubs.push(onSnapshot(query(collection(db, 'withdrawals'), where('uid', '==', uid)), s => {
     const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
     $('wds').innerHTML = arr.map(d =>
-      '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
-      '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
+      '<div class="row"><span><b>' + fmt(d.amount) + ' USDT</b><br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' + badge(d.status) + '</div>'
     ).join('') || '<div class="mut">No requests yet.</div>';
   }));
 
@@ -377,8 +426,8 @@ onAuthStateChanged(auth, user => {
       }
     });
     const el = $('earn');
-    el.textContent = sgn(today);
-    el.className = 'earn ' + (today > 0 ? 'up' : today < 0 ? 'down' : 'flat');
+    el.textContent = sgn(today) + ' today';
+    el.className = 'pill ' + (today > 0 ? 'up' : today < 0 ? 'down' : 'flat');
     $('tdep').textContent = fmt(tdep);
     $('twd').textContent = fmt(twd);
     const tp = $('tprof'); tp.textContent = sgn(tprof); tp.className = tprof > 0 ? 'up' : tprof < 0 ? 'down' : '';
