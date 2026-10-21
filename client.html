@@ -61,3 +61,302 @@ svg{width:100%;height:auto;display:block}
       <button id="toLogin2">Go to Login</button>
     </div>
     <div id="amsg" class="mut"></div>
+    <div class="disc">Returns are not guaranteed. Trading involves risk, including loss of capital.</div>
+  </div>
+
+  <div id="app" class="hide">
+    <div id="ann" class="ann hide"></div>
+
+    <div class="card">
+      <div class="mut">Name</div><div id="uname" class="big">-</div>
+      <div class="mut">Client ID</div><div id="cid" class="big">-</div>
+      <div class="mut">Account ID</div><div id="accid" class="big">-</div>
+      <div class="stats">
+        <div class="stat"><div class="mut">Balance (USDT)</div><div id="bal" class="bal">0.00</div></div>
+        <div class="stat"><div class="mut">Today's Earning</div><div id="earn" class="earn flat">0.00</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="mut">Total Deposited</div><b id="tdep">0.00</b></div>
+        <div class="stat"><div class="mut">Total Profit</div><b id="tprof">0.00</b></div>
+        <div class="stat"><div class="mut">Total Withdrawn</div><b id="twd">0.00</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <b>Daily Profit / Loss (last 30 days)</b>
+      <div id="chart"></div>
+    </div>
+
+    <div class="card">
+      <b>Make a Deposit</b>
+      <div class="mut" style="margin-top:6px">Send your payment to the Binance ID / address below:</div>
+      <div id="bin" class="copy">Deposit details have not been set yet.</div>
+      <div id="mindep" class="mut" style="margin-top:6px"></div>
+      <input id="amt" type="number" step="any" placeholder="Amount (USDT)">
+      <input id="txid" placeholder="Binance TxID / Order ID">
+      <input id="file" type="file" accept="image/*">
+      <img id="prev" class="hide">
+      <button id="btnDep">Submit</button>
+      <div id="dmsg" class="mut"></div>
+    </div>
+
+    <div class="card">
+      <b>Request a Withdrawal</b>
+      <input id="wamt" type="number" step="any" placeholder="Amount (USDT)">
+      <input id="waddr" placeholder="Your Binance ID / wallet address">
+      <input id="wnet" placeholder="Network (e.g. TRC20) - optional">
+      <button id="btnWd">Request Withdrawal</button>
+      <div id="wmsg" class="mut"></div>
+    </div>
+
+    <div class="card"><b>My Deposit Requests</b><div id="deps"></div></div>
+    <div class="card"><b>My Withdrawal Requests</b><div id="wds"></div></div>
+    <div class="card"><b>Account History</b><div id="led"></div></div>
+
+    <div class="card">
+      <b>Change Password</b>
+      <input id="cpw0" type="password" placeholder="Current password">
+      <input id="cpw1" type="password" placeholder="New password (6+ characters)">
+      <input id="cpw2" type="password" placeholder="Confirm new password">
+      <button id="btnPw">Change Password</button>
+      <div id="pmsg" class="mut"></div>
+    </div>
+
+    <button class="sec" id="btnOut">Logout</button>
+    <div class="disc">Returns are not guaranteed. Trading involves risk, including loss of capital. Past performance does not guarantee future results.</div>
+  </div>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {initializeAuth,browserSessionPersistence,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,EmailAuthProvider,reauthenticateWithCredential,updatePassword} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getFirestore,doc,setDoc,addDoc,collection,query,where,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPdBAAOzq-jUn6KTOvSEWpTALvWr1uLTM",
+  authDomain: "ea-system-a72c2.firebaseapp.com",
+  projectId: "ea-system-a72c2",
+  appId: "1:872233236864:web:a447e0e297240256822965"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = initializeAuth(app, {persistence: browserSessionPersistence});
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toEmail = id => String(id || '').trim().toLowerCase() + '@investor.app';
+const fmt = n => Number(n || 0).toFixed(2);
+const sgn = n => (n > 0 ? '+' : '') + fmt(n);
+const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
+const ts = x => (x.createdAt && x.createdAt.seconds) || 9999999999;
+const dkey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+let unsubs = [], imgData = null, myClientId = '', myBalance = 0, hasAccount = false, minDep = 0, registering = false;
+
+const msg = t => $('amsg').textContent = t;
+const dmsg = t => $('dmsg').textContent = t;
+const show = which => {
+  ['loginBox','regBox','doneBox'].forEach(x => $(x).classList.toggle('hide', x !== which));
+  msg('');
+};
+
+$('toReg').onclick = () => show('regBox');
+$('toLogin').onclick = () => show('loginBox');
+$('toLogin2').onclick = () => show('loginBox');
+
+$('btnReg').onclick = async () => {
+  const name = $('rname').value.trim(), pw = $('rpw').value, pw2 = $('rpw2').value;
+  if (!name) return msg('Please enter your name.');
+  if (pw.length < 6) return msg('Password must be at least 6 characters.');
+  if (pw !== pw2) return msg('Password and Confirm password do not match.');
+  registering = true; msg('Creating account...');
+  let cred = null, id = '';
+  for (let i = 0; i < 8; i++) {
+    id = 'C' + Math.floor(100000 + Math.random() * 900000);
+    try { cred = await createUserWithEmailAndPassword(auth, toEmail(id), pw); break; }
+    catch (e) { if (e.code !== 'auth/email-already-in-use') { registering = false; return msg('Error: ' + (e.code || e.message)); } }
+  }
+  if (!cred) { registering = false; return msg('Please try again.'); }
+  try {
+    await setDoc(doc(db, 'users', cred.user.uid), {clientId: id, name, suspended: false, createdAt: serverTimestamp()});
+    await signOut(auth);
+    registering = false;
+    $('rname').value = ''; $('rpw').value = ''; $('rpw2').value = '';
+    $('newId').textContent = id; $('lid').value = id; $('lpw').value = '';
+    $('auth').classList.remove('hide'); $('app').classList.add('hide');
+    show('doneBox');
+  } catch (e) { registering = false; msg('Error: ' + (e.code || e.message)); }
+};
+
+$('btnLogin').onclick = async () => {
+  msg('Signing in...');
+  try { await signInWithEmailAndPassword(auth, toEmail($('lid').value), $('lpw').value); msg(''); }
+  catch (e) {
+    msg(e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found'
+      ? 'Wrong Login ID or password.' : 'Login failed: ' + (e.code || e.message));
+  }
+};
+
+$('btnOut').onclick = () => signOut(auth);
+
+$('btnPw').onclick = async () => {
+  const p0 = $('cpw0').value, p1 = $('cpw1').value, p2 = $('cpw2').value, el = $('pmsg');
+  if (!p0 || p1.length < 6) return el.textContent = 'Enter your current password and a new one (6+ characters).';
+  if (p1 !== p2) return el.textContent = 'New password and Confirm do not match.';
+  try {
+    const u = auth.currentUser;
+    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, p0));
+    await updatePassword(u, p1);
+    $('cpw0').value = ''; $('cpw1').value = ''; $('cpw2').value = '';
+    el.textContent = 'Password changed successfully.';
+  } catch (e) { el.textContent = 'Current password is wrong or try logging in again.'; }
+};
+
+$('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => {
+    const sc = Math.min(1, 900 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = img.width * sc; c.height = img.height * sc;
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    imgData = c.toDataURL('image/jpeg', 0.6);
+    URL.revokeObjectURL(url);
+    $('prev').src = imgData; $('prev').classList.remove('hide');
+  };
+  img.src = url;
+};
+
+$('btnDep').onclick = async () => {
+  const user = auth.currentUser;
+  const amount = parseFloat($('amt').value), txid = $('txid').value.trim();
+  if (!(amount > 0) || !txid || !imgData) return dmsg('Amount, TxID and screenshot are all required.');
+  if (amount < minDep) return dmsg('Minimum deposit is ' + fmt(minDep) + ' USDT.');
+  if (!myClientId) return dmsg('Account is still loading. Please try again.');
+  try {
+    await addDoc(collection(db, 'deposits'), {uid: user.uid, clientId: myClientId, amount, txid, image: imgData, status: 'pending', createdAt: serverTimestamp()});
+    $('amt').value = ''; $('txid').value = ''; $('file').value = '';
+    $('prev').classList.add('hide'); imgData = null;
+    dmsg('Request submitted. Please wait for approval.');
+  } catch (e) { dmsg('Error: ' + (e.code || e.message)); }
+};
+
+$('btnWd').onclick = async () => {
+  const user = auth.currentUser, el = $('wmsg');
+  const amount = parseFloat($('wamt').value), address = $('waddr').value.trim(), network = $('wnet').value.trim();
+  if (!(amount > 0) || !address) return el.textContent = 'Amount and your Binance ID / address are required.';
+  if (!hasAccount) return el.textContent = 'You have no balance yet.';
+  if (amount > myBalance) return el.textContent = 'Amount is more than your balance.';
+  if (!myClientId) return el.textContent = 'Account is still loading. Please try again.';
+  try {
+    await addDoc(collection(db, 'withdrawals'), {uid: user.uid, clientId: myClientId, amount, address, network, status: 'pending', createdAt: serverTimestamp()});
+    $('wamt').value = ''; $('waddr').value = ''; $('wnet').value = '';
+    el.textContent = 'Withdrawal request submitted. Please wait for approval.';
+  } catch (e) { el.textContent = 'Error: ' + (e.code || e.message); }
+};
+
+function drawChart(arr) {
+  const days = [], map = {};
+  for (let i = 29; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const k = dkey(d); days.push(k); map[k] = 0; }
+  arr.forEach(x => {
+    if ((x.type === 'profit' || x.type === 'loss') && x.createdAt && x.createdAt.toDate) {
+      const k = dkey(x.createdAt.toDate());
+      if (k in map) map[k] += Number(x.amount) || 0;
+    }
+  });
+  const vals = days.map(k => map[k]);
+  const max = Math.max(1, ...vals.map(v => Math.abs(v)));
+  let bars = '';
+  vals.forEach((v, i) => {
+    const h = Math.abs(v) / max * 50, x = 5 + i * 9.6, y = v >= 0 ? 60 - h : 60;
+    bars += '<rect x="' + x + '" y="' + y + '" width="7" height="' + Math.max(h, v ? 1 : 0) + '" rx="1" fill="' + (v >= 0 ? '#2ecc71' : '#e74c3c') + '"/>';
+  });
+  $('chart').innerHTML = '<svg viewBox="0 0 300 120"><line x1="0" y1="60" x2="300" y2="60" stroke="#2c3652"/>' + bars +
+    '<text x="2" y="10" fill="#8b95ad" font-size="8">+' + fmt(max) + '</text><text x="2" y="118" fill="#8b95ad" font-size="8">-' + fmt(max) + '</text></svg>';
+}
+
+onAuthStateChanged(auth, user => {
+  unsubs.forEach(u => u()); unsubs = []; myClientId = ''; myBalance = 0; hasAccount = false;
+  if (registering) return;
+  if (user && !String(user.email || '').endsWith('@investor.app')) { signOut(auth); return; }
+  $('auth').classList.toggle('hide', !!user);
+  $('app').classList.toggle('hide', !user);
+  if (!user) return;
+  const uid = user.uid;
+
+  unsubs.push(onSnapshot(doc(db, 'users', uid), s => {
+    if (registering) return;
+    if (!s.exists()) { signOut(auth); msg('This account was not found or has been deleted.'); return; }
+    const d = s.data();
+    if (d.suspended) { signOut(auth); msg('Your account is suspended. Please contact the admin.'); return; }
+    myClientId = d.clientId || '';
+    $('cid').textContent = myClientId || '-';
+    $('uname').textContent = d.name || '-';
+  }, e => msg('Error: ' + e.code)));
+
+  unsubs.push(onSnapshot(doc(db, 'accounts', uid), s => {
+    const a = s.data();
+    hasAccount = !!a; myBalance = a ? Number(a.balance) || 0 : 0;
+    $('accid').textContent = a ? a.accountId : 'Available after first approval';
+    $('bal').textContent = fmt(myBalance);
+  }, e => msg('Error: ' + e.code)));
+
+  unsubs.push(onSnapshot(doc(db, 'settings', 'public'), s => {
+    const d = s.data();
+    if (!d) return;
+    minDep = Number(d.minDeposit) || 0;
+    $('mindep').textContent = minDep > 0 ? 'Minimum deposit: ' + fmt(minDep) + ' USDT' : '';
+    $('bin').innerHTML =
+      (d.binanceId ? 'Binance ID: <b>' + esc(d.binanceId) + '</b><br>' : '') +
+      (d.address ? 'Address: <b>' + esc(d.address) + '</b><br>' : '') +
+      (d.network ? 'Network: <b>' + esc(d.network) + '</b><br>' : '') +
+      (d.note ? '<span class="mut">' + esc(d.note) + '</span>' : '');
+    const a = $('ann');
+    if (d.announcement) { a.textContent = '📢 ' + d.announcement; a.classList.remove('hide'); } else a.classList.add('hide');
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'deposits'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    $('deps').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
+    ).join('') || '<div class="mut">No requests yet.</div>';
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'withdrawals'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    $('wds').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + fmt(d.amount) + ' USDT<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.status) + '">' + esc(d.status.toUpperCase()) + '</b></div>'
+    ).join('') || '<div class="mut">No requests yet.</div>';
+  }));
+
+  unsubs.push(onSnapshot(query(collection(db, 'ledger'), where('uid', '==', uid)), s => {
+    const arr = s.docs.map(d => d.data()).sort((a, b) => ts(b) - ts(a));
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    let today = 0, tdep = 0, tprof = 0, twd = 0;
+    arr.forEach(d => {
+      const a = Number(d.amount) || 0;
+      if (d.type === 'deposit') tdep += a;
+      else if (d.type === 'withdrawal') twd += Math.abs(a);
+      else if (d.type === 'profit' || d.type === 'loss') {
+        tprof += a;
+        if (d.createdAt && d.createdAt.toDate && d.createdAt.toDate() >= start) today += a;
+      }
+    });
+    const el = $('earn');
+    el.textContent = sgn(today);
+    el.className = 'earn ' + (today > 0 ? 'up' : today < 0 ? 'down' : 'flat');
+    $('tdep').textContent = fmt(tdep);
+    $('twd').textContent = fmt(twd);
+    const tp = $('tprof'); tp.textContent = sgn(tprof); tp.className = tprof > 0 ? 'up' : tprof < 0 ? 'down' : '';
+    drawChart(arr);
+    $('led').innerHTML = arr.map(d =>
+      '<div class="row"><span>' + esc(d.type) + (d.note ? ' - ' + esc(d.note) : '') + '<br><span class="mut">' + esc(dt(d.createdAt)) + '</span></span>' +
+      '<b class="' + esc(d.type) + '">' + sgn(d.amount) + '</b></div>'
+    ).join('') || '<div class="mut">No history yet.</div>';
+  }));
+});
+</script>
+</body>
+</html>
