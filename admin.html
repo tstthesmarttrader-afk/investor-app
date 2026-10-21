@@ -4,40 +4,56 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Investor Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1420;--card:#1a2133;--tx:#e8ecf5;--mut:#8b95ad;--ac:#f0b90b;--ok:#2ecc71;--bad:#e74c3c}
+:root{--bg:#0b101c;--card:#161e32;--card2:#1c2640;--tx:#eef1f8;--mut:#8b95ad;--ac:#f0b90b;--ac2:#f8d56b;--ok:#2ecc71;--bad:#e74c3c;--line:#27324f}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx)}
-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 20px;background:var(--card);position:sticky;top:0;z-index:5}
-section{padding:20px;max-width:1100px;margin:auto}
-.card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px}
-input,button,textarea{padding:10px;border-radius:8px;border:1px solid #2c3652;background:#10172a;color:var(--tx);font-size:14px;font-family:inherit}
-button{background:var(--ac);color:#000;font-weight:700;border:0;cursor:pointer;margin:2px}
-button.sec{background:#2c3652;color:var(--tx)} button.bad{background:var(--bad);color:#fff}
-.box{max-width:340px;margin:12vh auto;background:var(--card);padding:20px;border-radius:12px}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 20px;background:rgba(22,30,50,.95);backdrop-filter:blur(8px);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+.logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:18px}
+nav{display:flex;flex-wrap:wrap;gap:6px}
+section{padding:20px;max-width:1150px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.card h3,h4{margin:0 0 8px;font-weight:600}
+h4{margin:16px 0 10px;font-size:15px}
+input,button,textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0e1526;color:var(--tx);font-size:13px;font-family:inherit}
+input:focus,textarea:focus{outline:none;border-color:var(--ac)}
+button{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1400;font-weight:700;border:0;cursor:pointer;margin:2px;transition:transform .12s}
+button:active{transform:scale(.96)}
+button.sec{background:var(--card2);color:var(--tx);border:1px solid var(--line)}
+button.bad{background:linear-gradient(135deg,#e74c3c,#ff7b6b);color:#fff}
+nav button{background:var(--card2);color:var(--tx);border:1px solid var(--line)}
+nav button.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1400}
+.box{max-width:360px;margin:12vh auto;background:var(--card);padding:24px;border-radius:18px;border:1px solid var(--line)}
 .box input{width:100%;margin:6px 0}
-.mut{color:var(--mut);font-size:13px}.hide{display:none}
+.mut{color:var(--mut);font-size:12px}.hide{display:none}
 table{width:100%;border-collapse:collapse}
-td,th{padding:8px;border-bottom:1px solid #2c3652;text-align:left;font-size:14px;white-space:nowrap}
-.pending{color:var(--ac)}.approved,.up{color:var(--ok)}.rejected,.down{color:var(--bad)}
-.shot{max-width:160px;border-radius:8px;cursor:zoom-in;display:block;margin:8px 0}
+td,th{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;white-space:nowrap}
+th{color:var(--mut);font-weight:500;font-size:12px}
+.up{color:var(--ok)}.down{color:var(--bad)}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.b-pending{background:rgba(240,185,11,.15);color:var(--ac)}
+.b-approved,.b-active{background:rgba(46,204,113,.15);color:var(--ok)}
+.b-rejected,.b-suspended{background:rgba(231,76,60,.15);color:var(--bad)}
+.shot{max-width:160px;border-radius:10px;cursor:zoom-in;display:block;margin:8px 0}
 .shot.big{max-width:100%}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;padding:20px 20px 0;max-width:1100px;margin:auto}
-.stat{background:var(--card);border-radius:12px;padding:14px}
-.stat b{font-size:24px;display:block;margin-top:4px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;padding:20px 20px 0;max-width:1150px;margin:auto}
+.stat{border-radius:16px;padding:16px;background:linear-gradient(135deg,#1b2a52,#101a3a 60%,#4a3a08 130%);border:1px solid #2f3d66}
+.stat span{font-size:12px;color:#aab4d0}
+.stat b{font-size:26px;display:block;margin-top:4px;font-weight:700}
 .set input,.set textarea{width:100%;margin:5px 0}
 .tbl{overflow-x:auto}
 .daily{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
-.daily input{width:140px}
+.daily input{width:160px}
 .danger{border:1px solid var(--bad)}
-h4{margin:14px 0 8px}
 </style>
 </head>
 <body>
 
 <div id="login" class="box">
-  <h3>Admin Login</h3>
+  <h3>🔐 Admin Login</h3>
   <input id="aemail" placeholder="Admin email">
   <input id="apw" type="password" placeholder="Password">
   <button id="btnLogin" style="width:100%">Login</button>
@@ -46,40 +62,40 @@ h4{margin:14px 0 8px}
 
 <div id="main" class="hide">
   <header>
-    <b>💼 Admin Dashboard</b>
-    <span>
-      <button onclick="tab('pend')">Pending (<span id="pc">0</span>)</button>
-      <button onclick="tab('cl')">Clients</button>
-      <button onclick="tab('hist')">History</button>
-      <button onclick="tab('logs')">Activity Log</button>
-      <button onclick="tab('set')">Settings</button>
-      <button class="sec" onclick="logout()">Logout</button>
-    </span>
+    <div class="brand"><div class="logo">💼</div>Admin Dashboard</div>
+    <nav id="nav">
+      <button class="on" data-t="pend">📥 Pending (<span id="pc">0</span>)</button>
+      <button data-t="cl">👥 Clients</button>
+      <button data-t="hist">📜 History</button>
+      <button data-t="logs">🕘 Activity</button>
+      <button data-t="set">⚙️ Settings</button>
+      <button class="bad" onclick="logout()">Logout</button>
+    </nav>
   </header>
 
   <div class="stats">
-    <div class="stat"><span class="mut">Total Clients</span><b id="st_cl">0</b></div>
-    <div class="stat"><span class="mut">Total Balance (USDT)</span><b id="st_bal">0.00</b></div>
-    <div class="stat"><span class="mut">Pending Requests</span><b id="st_pend">0</b></div>
-    <div class="stat"><span class="mut">Today's P/L (USDT)</span><b id="st_today">0.00</b></div>
+    <div class="stat"><span>👥 Total Clients</span><b id="st_cl">0</b></div>
+    <div class="stat"><span>💰 Total Balance (USDT)</span><b id="st_bal">0.00</b></div>
+    <div class="stat"><span>📥 Pending Requests</span><b id="st_pend">0</b></div>
+    <div class="stat"><span>📈 Today's P/L (USDT)</span><b id="st_today">0.00</b></div>
   </div>
 
   <section id="pend"></section>
 
   <section id="cl" class="hide">
     <div class="card">
-      <b>Daily Earning</b>
+      <h3>📊 Daily Earning</h3>
       <div class="mut">Enter today's result in %. Use a minus sign for a loss. It updates every active investor instantly.</div>
       <div class="daily">
         <input id="d_pct" type="number" step="any" placeholder="Today's % (e.g. 1.5)">
         <input id="d_note" placeholder="Note (optional)">
-        <button onclick="publishDaily()">Publish to all clients</button>
+        <button onclick="publishDaily()">🚀 Publish to all clients</button>
       </div>
       <div id="d_status" class="mut" style="margin-top:8px"></div>
     </div>
     <div class="card tbl">
-      <button class="sec" onclick="exportClients()">Export Clients (CSV)</button>
-      <button class="sec" onclick="exportTx()">Export Transactions (CSV)</button>
+      <button class="sec" onclick="exportClients()">⬇️ Export Clients (CSV)</button>
+      <button class="sec" onclick="exportTx()">⬇️ Export Transactions (CSV)</button>
       <table id="cltable"></table>
     </div>
   </section>
@@ -89,7 +105,7 @@ h4{margin:14px 0 8px}
 
   <section id="set" class="hide">
     <div class="card set">
-      <b>Deposit details & announcement</b>
+      <h3>⚙️ Deposit details & announcement</h3>
       <input id="s_bin" placeholder="Binance ID (Pay ID)">
       <input id="s_addr" placeholder="Wallet address (optional)">
       <input id="s_net" placeholder="Network (e.g. TRC20)">
@@ -100,7 +116,7 @@ h4{margin:14px 0 8px}
       <span id="smsg" class="mut"></span>
     </div>
     <div class="card danger">
-      <b style="color:var(--bad)">Danger Zone</b>
+      <h3 style="color:var(--bad)">⚠️ Danger Zone</h3>
       <div class="mut" style="margin:6px 0">Deletes ALL clients, balances, deposits, withdrawals and history. Settings are kept. This cannot be undone.</div>
       <button class="bad" onclick="resetAll()">Reset All Data</button>
       <span id="rmsg" class="mut"></span>
@@ -130,12 +146,18 @@ const fmt = n => Number(n || 0).toFixed(2);
 const sgn = n => (n > 0 ? '+' : '') + fmt(n);
 const dt = t => t && t.toDate ? t.toDate().toLocaleString() : '';
 const sec = t => (t && t.seconds) || 9999999999;
+const badge = s => '<span class="badge b-' + esc(String(s).toLowerCase()) + '">' + esc(s) + '</span>';
 const dayKey = () => { const d = new Date(); return 'daily-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const log = (action, detail) => addDoc(collection(db, 'logs'), {action, detail: detail || '', at: serverTimestamp()}).catch(() => {});
 
 let users = {}, accounts = {}, deposits = [], withdrawals = [], ledgerDocs = [], logDocs = [], todayByUid = {}, unsubs = [], settingsLoaded = false;
 
-window.tab = n => ['pend','cl','hist','logs','set'].forEach(x => $(x).classList.toggle('hide', x !== n));
+const TABS = ['pend','cl','hist','logs','set'];
+window.tab = n => {
+  TABS.forEach(x => $(x).classList.toggle('hide', x !== n));
+  document.querySelectorAll('#nav button[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === n));
+};
+document.querySelectorAll('#nav button[data-t]').forEach(b => b.onclick = () => window.tab(b.dataset.t));
 window.logout = () => signOut(auth);
 
 $('btnLogin').onclick = async () => {
@@ -152,13 +174,13 @@ $('btnLogin').onclick = async () => {
   } catch (e) { $('lmsg').textContent = 'Login failed: ' + (e.code || e.message); }
 };
 
+let started = false;
 onAuthStateChanged(auth, user => {
   if (user && user.email && user.email.toLowerCase() === ADMIN_EMAIL) startAdmin(user);
   else if (user) { signOut(auth); }
   else { unsubs.forEach(u => u()); unsubs = []; started = false; $('login').classList.remove('hide'); $('main').classList.add('hide'); }
 });
 
-let started = false;
 function startAdmin(user) {
   if (started) return;
   started = true;
@@ -226,36 +248,36 @@ function renderDeposits() {
   $('pc').textContent = pend.length + pw.length;
 
   $('pend').innerHTML =
-    '<h4>Deposit requests</h4>' +
+    '<h4>💰 Deposit requests</h4>' +
     (pend.length ? '<div class="grid">' + pend.map(d => {
       const u = users[d.uid] || {};
       return '<div class="card">' +
-        '<b>' + esc(d.clientId) + '</b> - ' + esc(u.name) + '<div class="mut">' + esc(dt(d.createdAt)) + '</div>' +
+        '<b>' + esc(d.clientId) + '</b> - ' + esc(u.name) + ' ' + badge('pending') + '<div class="mut">' + esc(dt(d.createdAt)) + '</div>' +
         '<div style="margin-top:6px">Claimed: <b>' + fmt(d.amount) + ' USDT</b></div>' +
         '<div class="mut" style="word-break:break-all">TxID: ' + esc(d.txid) + '</div>' +
         '<img class="shot" src="' + esc(d.image) + '" onclick="this.classList.toggle(\'big\')">' +
         '<div>Verified amount: <input id="amt_' + d.id + '" type="number" step="any" value="' + esc(d.amount) + '" style="width:110px"></div>' +
-        '<button onclick="approve(\'' + d.id + '\')">Approve</button>' +
+        '<button onclick="approve(\'' + d.id + '\')">✅ Approve</button>' +
         '<button class="bad" onclick="reject(\'' + d.id + '\')">Reject</button></div>';
     }).join('') + '</div>' : '<div class="mut">No pending deposits.</div>') +
-    '<h4>Withdrawal requests</h4>' +
+    '<h4>📤 Withdrawal requests</h4>' +
     (pw.length ? '<div class="grid">' + pw.map(w => {
       const u = users[w.uid] || {}, a = accounts[w.uid];
       return '<div class="card">' +
-        '<b>' + esc(w.clientId) + '</b> - ' + esc(u.name) + '<div class="mut">' + esc(dt(w.createdAt)) + '</div>' +
+        '<b>' + esc(w.clientId) + '</b> - ' + esc(u.name) + ' ' + badge('pending') + '<div class="mut">' + esc(dt(w.createdAt)) + '</div>' +
         '<div style="margin-top:6px">Amount: <b>' + fmt(w.amount) + ' USDT</b> <span class="mut">(balance ' + fmt(a && a.balance) + ')</span></div>' +
         '<div class="mut" style="word-break:break-all">Send to: ' + esc(w.address) + (w.network ? ' (' + esc(w.network) + ')' : '') + '</div>' +
         '<div class="mut" style="margin:6px 0">Send the money on Binance first, then click Approve.</div>' +
-        '<button onclick="approveW(\'' + w.id + '\')">Approve (Paid)</button>' +
+        '<button onclick="approveW(\'' + w.id + '\')">✅ Approve (Paid)</button>' +
         '<button class="bad" onclick="rejectW(\'' + w.id + '\')">Reject</button></div>';
     }).join('') + '</div>' : '<div class="mut">No pending withdrawals.</div>');
 
-  const done = deposits.filter(d => d.status !== 'pending').map(d => ({...d, kind: 'Deposit', appr: d.approvedAmount}))
-    .concat(withdrawals.filter(w => w.status !== 'pending').map(w => ({...w, kind: 'Withdrawal', appr: w.status === 'approved' ? w.amount : null})))
+  const done = deposits.filter(d => d.status !== 'pending').map(d => ({...d, kind: '💰 Deposit', appr: d.approvedAmount}))
+    .concat(withdrawals.filter(w => w.status !== 'pending').map(w => ({...w, kind: '📤 Withdrawal', appr: w.status === 'approved' ? w.amount : null})))
     .sort((a, b) => sec(b.processedAt) - sec(a.processedAt)).slice(0, 100);
   $('hist').innerHTML = '<div class="card tbl"><table><tr><th>Type</th><th>Client</th><th>Requested</th><th>Approved</th><th>Status</th><th>Time</th></tr>' +
     done.map(d => '<tr><td>' + d.kind + '</td><td>' + esc(d.clientId) + '</td><td>' + fmt(d.amount) + '</td><td>' + (d.appr != null ? fmt(d.appr) : '-') +
-      '</td><td class="' + esc(d.status) + '">' + esc(d.status) + '</td><td>' + esc(dt(d.processedAt)) + '</td></tr>').join('') + '</table></div>';
+      '</td><td>' + badge(d.status) + '</td><td>' + esc(dt(d.processedAt)) + '</td></tr>').join('') + '</table></div>';
 }
 
 function renderLogs() {
@@ -266,10 +288,10 @@ function renderLogs() {
 function renderClients() {
   const rows = Object.keys(users).map(uid => {
     const u = users[uid], a = accounts[uid], t = todayByUid[uid] || 0, sus = !!u.suspended;
-    return '<tr><td>' + esc(u.clientId) + '</td><td>' + esc(u.name) + '</td><td>' +
+    return '<tr><td><b>' + esc(u.clientId) + '</b></td><td>' + esc(u.name) + '</td><td>' +
       (a ? esc(a.accountId) : '-') + '</td><td><b>' + (a ? fmt(a.balance) : '-') + '</b></td>' +
       '<td class="' + (t > 0 ? 'up' : t < 0 ? 'down' : '') + '">' + (a ? sgn(t) : '-') + '</td>' +
-      '<td class="' + (sus ? 'rejected' : 'approved') + '">' + (sus ? 'Suspended' : 'Active') + '</td><td>' +
+      '<td>' + badge(sus ? 'Suspended' : 'Active') + '</td><td>' +
       (a ? '<button onclick="pl(\'' + uid + '\')">+ Profit / Loss</button>' : '') +
       '<button class="sec" onclick="toggleSuspend(\'' + uid + '\')">' + (sus ? 'Activate' : 'Suspend') + '</button>' +
       '<button class="bad" onclick="delUser(\'' + uid + '\')">Delete</button></td></tr>';
