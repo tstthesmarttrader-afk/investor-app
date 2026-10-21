@@ -324,7 +324,7 @@ window.resetAll = async () => {
   if (prompt('Type RESET to confirm:') !== 'RESET') return;
   $('rmsg').textContent = 'Deleting...';
   try {
-    for (const name of ['ledger', 'deposits', 'withdrawals', 'accounts', 'users']) {
+    for (const name of ['ledger', 'deposits', 'withdrawals', 'accounts', 'users', 'feed']) {
       const snap = await getDocs(collection(db, name));
       let batch = writeBatch(db), n = 0;
       for (const d of snap.docs) {
@@ -425,15 +425,18 @@ window.publishDaily = async () => {
       if (users[uid] && users[uid].suspended) continue;
       const oldMine = old.filter(x => x.uid === uid);
       const oldSum = oldMine.reduce((t, x) => t + (Number(x.amount) || 0), 0);
+      let nVal = 0;
       await runTransaction(db, async tx => {
         const ref = doc(db, 'accounts', uid);
         const s = await tx.get(ref);
         const base = s.data().balance - oldSum;
         const n = +(base * p / 100).toFixed(2);
+        nVal = n;
         oldMine.forEach(x => tx.delete(doc(db, 'ledger', x.id)));
         tx.update(ref, {balance: +(base + n).toFixed(2)});
         if (n) tx.set(doc(collection(db, 'ledger')), {uid, type: n > 0 ? 'profit' : 'loss', amount: n, note, batch: key, pct: p, createdAt: serverTimestamp()});
       });
+      { const c = String((users[uid] || {}).clientId || ''); await setDoc(doc(db, 'feed', key + '_' + uid), {cid: c.slice(0, 3) + '***' + c.slice(-2), amount: nVal, at: serverTimestamp()}); }
       count++;
     }
     $('d_pct').value = ''; $('d_note').value = '';
