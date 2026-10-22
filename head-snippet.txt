@@ -1,0 +1,11 @@
+<!-- client.html ke <head> ke andar paste karein -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1f4b">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- client.html me </body> se pehle paste karein -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+  }
+</script>
